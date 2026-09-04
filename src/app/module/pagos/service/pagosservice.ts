@@ -1,0 +1,2 @@
+﻿export * from './pago.service';
+
