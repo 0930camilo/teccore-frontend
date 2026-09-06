@@ -1,8 +1,19 @@
 export interface Programa {
   id?: number;
   nombre?: string;
-  codigo?: string;
-  descripcion?: string | null;
+  duracionSemestres?: number | null;
+  nivel?: string | null;
+  costoSemestral?: number | null;
   institucionId?: number | null;
 }
+
+export interface ProgramaRequest {
+  nombre: string;
+  duracionSemestres?: number | null;
+  nivel?: string | null;
+  costoSemestral?: number | null;
+  institucionId: number;
+}
+
+export type ProgramaUpdateRequest = ProgramaRequest;
 

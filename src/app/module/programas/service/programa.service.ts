@@ -4,7 +4,7 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../../shared/interface/api-response.interface';
 import { PaginacionRequest, PaginacionRespuesta } from '../../../shared/interface/pagination.interface';
 import { ResourceApiService } from '../../../shared/services/resource-api.service';
-import { Programa } from '../model/programa.model';
+import { Programa, ProgramaRequest, ProgramaUpdateRequest } from '../model/programa.model';
 
 @Injectable({
   providedIn: 'root'
@@ -17,8 +17,12 @@ export class ProgramaService {
     return this.api.listar<Programa>(this.url, filtros);
   }
 
-  crear(payload: Record<string, unknown>): Observable<ApiResponse<Programa>> {
+  crear(payload: ProgramaRequest): Observable<ApiResponse<Programa>> {
     return this.api.crear<Programa>(this.url, payload);
+  }
+
+  actualizar(id: number, payload: ProgramaUpdateRequest): Observable<ApiResponse<Programa>> {
+    return this.api.actualizar<Programa>(this.url, id, payload);
   }
 }
 
