@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { EmptyStateComponent } from '../../../components/empty-state/empty-state.component';
@@ -7,10 +7,13 @@ import { LoadingComponent } from '../../../components/loading/loading.component'
 import { PaginationComponent } from '../../../components/pagination/pagination.component';
 import { SearchInputComponent } from '../../../components/search-input/search-input.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { ESTADOS_REGISTRO, EstadoRegistro } from '../../../shared/enums/estado-registro.enum';
 import { ApiResponse } from '../../../shared/interface/api-response.interface';
 import { PaginacionRequest, PaginacionRespuesta } from '../../../shared/interface/pagination.interface';
 import { NotificationService } from '../../../shared/services/notification.service';
-import { Programa, ProgramaRequest } from '../model/programa.model';
+import { Sede } from '../../sedes/model/sede.model';
+import { SedeService } from '../../sedes/service/sede.service';
+import { Programa, ProgramaRequest, ProgramaUpdateRequest } from '../model/programa.model';
 import { ProgramaService } from '../service/programa.service';
 
 @Component({
@@ -26,7 +29,7 @@ import { ProgramaService } from '../service/programa.service';
         </div>
 
         <div class="header-actions">
-          <button type="button" class="btn-new" (click)="openCreateModal()">+ Nuevo programa</button>
+          <button *ngIf="canManage" type="button" class="btn-new" (click)="openCreateModal()">+ Nuevo programa</button>
           <button type="button" class="refresh" (click)="reload()">Actualizar</button>
         </div>
       </header>
@@ -55,6 +58,7 @@ import { ProgramaService } from '../service/programa.service';
               <th>Duración</th>
               <th>Nivel</th>
               <th>Costo semestral</th>
+              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -65,7 +69,13 @@ import { ProgramaService } from '../service/programa.service';
               <td>{{ formatValue(item.nivel) }}</td>
               <td>{{ formatCurrency(item.costoSemestral) }}</td>
               <td>
-                <button type="button" class="btn-edit" (click)="openEditModal(item)">Editar</button>
+                <span class="status-pill" [attr.data-state]="item.estado">
+                  {{ estadoLabel(item.estado) }}
+                </span>
+              </td>
+              <td>
+                <button *ngIf="canManage" type="button" class="btn-edit" (click)="openEditModal(item)">Editar</button>
+                <span *ngIf="!canManage">—</span>
               </td>
             </tr>
           </tbody>
@@ -88,9 +98,17 @@ import { ProgramaService } from '../service/programa.service';
           </header>
 
           <form [formGroup]="programForm" (ngSubmit)="submit()" class="modal__body">
-            <div class="field">
+            <div class="field" [class.field--full]="!needsSedeSelection">
               <label for="programa-nombre">Nombre <span class="required">*</span></label>
               <input id="programa-nombre" type="text" formControlName="nombre" placeholder="Nombre del programa" />
+            </div>
+
+            <div class="field" *ngIf="needsSedeSelection">
+              <label for="programa-sede">Sede <span class="required">*</span></label>
+              <select id="programa-sede" formControlName="sedeId">
+                <option [ngValue]="null">Selecciona una sede</option>
+                <option *ngFor="let s of sedes" [ngValue]="s.id">{{ s.nombre }}</option>
+              </select>
             </div>
 
             <div class="field">
@@ -106,6 +124,13 @@ import { ProgramaService } from '../service/programa.service';
             <div class="field">
               <label for="programa-costo">Costo semestral</label>
               <input id="programa-costo" type="number" min="0" step="0.01" formControlName="costoSemestral" placeholder="0" />
+            </div>
+
+            <div class="field" *ngIf="isEditing">
+              <label for="programa-estado">Estado</label>
+              <select id="programa-estado" formControlName="estado">
+                <option *ngFor="let estado of estados" [value]="estado">{{ estadoLabel(estado) }}</option>
+              </select>
             </div>
 
             <footer class="modal__footer">
@@ -130,7 +155,7 @@ import { ProgramaService } from '../service/programa.service';
     .refresh, .btn-cancel { border: 1px solid #cbd5e1; background: #fff; color: #334155; }
     .table-wrapper { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 1rem; }
     table { width: 100%; border-collapse: collapse; min-width: 48rem; }
-    th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
     th { background: #f8fafc; color: #0f172a; text-transform: capitalize; white-space: nowrap; }
     .error { padding: 1rem; border-radius: 0.9rem; background: #fee2e2; color: #991b1b; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; z-index: 1000; padding: 1rem; }
@@ -140,11 +165,16 @@ import { ProgramaService } from '../service/programa.service';
     .modal__close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #64748b; }
     .modal__body { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .field { display: grid; gap: 0.35rem; }
+    .field--full { grid-column: 1 / -1; }
     .field label { font-weight: 600; color: #0f172a; font-size: 0.9rem; }
-    .field input { padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #fff; font-size: 0.95rem; width: 100%; box-sizing: border-box; }
+    .field input, .field select { padding: 0.75rem 1rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #fff; font-size: 0.95rem; width: 100%; box-sizing: border-box; }
     .required { color: #b91c1c; margin-left: 2px; }
     .modal__footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; grid-column: 1 / -1; }
     .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+    .status-pill { display: inline-flex; align-items: center; justify-content: center; padding: 0.25rem 0.7rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; width: fit-content; text-transform: uppercase; background: #f1f5f9; color: #475569; }
+    .status-pill[data-state='ACTIVO'] { background: #dcfce7; color: #15803d; }
+    .status-pill[data-state='INACTIVO'] { background: #fee2e2; color: #b91c1c; }
+    .status-pill[data-state='PENDIENTE'] { background: #fef9c3; color: #854d0e; }
     @media (max-width: 640px) {
       .resource-card__header, .header-actions, .modal__footer { flex-direction: column; align-items: stretch; }
       .modal__body { grid-template-columns: 1fr; }
@@ -152,14 +182,17 @@ import { ProgramaService } from '../service/programa.service';
     }
   `]
 })
-export class ProgramasListPageComponent {
+export class ProgramasListPageComponent implements OnInit {
   private readonly service = inject(ProgramaService);
+  private readonly sedeService = inject(SedeService);
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly fb = inject(FormBuilder);
 
+  readonly estados = ESTADOS_REGISTRO;
+  sedes: Sede[] = [];
   loading = false;
   saving = false;
   showModal = false;
@@ -175,15 +208,33 @@ export class ProgramasListPageComponent {
     nombre: ['', [Validators.required]],
     duracionSemestres: this.fb.control<number | null>(null, { validators: [Validators.min(1)] }),
     nivel: this.fb.control<string>(''),
-    costoSemestral: this.fb.control<number | null>(null, { validators: [Validators.min(0)] })
+    costoSemestral: this.fb.control<number | null>(null, { validators: [Validators.min(0)] }),
+    sedeId: this.fb.control<number | null>(null),
+    estado: this.fb.control<EstadoRegistro>(EstadoRegistro.ACTIVO)
   });
 
-  constructor() {
+  ngOnInit(): void {
     this.loadProgramas();
+    if (this.needsSedeSelection) {
+      this.loadSedes();
+    }
+  }
+
+  get canManage(): boolean {
+    return this.authService.isAdminSede() || this.authService.isSuperAdmin() || this.authService.isAdminInstitucion();
+  }
+
+  get needsSedeSelection(): boolean {
+    return !this.authService.getSedeId();
   }
 
   get isEditing(): boolean {
     return this.editingId !== null;
+  }
+
+  estadoLabel(estado: EstadoRegistro | string | null | undefined): string {
+    if (!estado) return '—';
+    return String(estado).toUpperCase();
   }
 
   onSearchChange(query: string): void {
@@ -203,12 +254,18 @@ export class ProgramasListPageComponent {
 
   openCreateModal(): void {
     this.editingId = null;
+    const sessionSedeId = this.authService.getSedeId();
     this.programForm.reset({
       nombre: '',
       duracionSemestres: null,
       nivel: '',
-      costoSemestral: null
+      costoSemestral: null,
+      sedeId: sessionSedeId ?? null,
+      estado: EstadoRegistro.ACTIVO
     });
+    if (this.needsSedeSelection && this.sedes.length === 0) {
+      this.loadSedes();
+    }
     this.showModal = true;
   }
 
@@ -220,12 +277,18 @@ export class ProgramasListPageComponent {
     }
 
     this.editingId = id;
+    const sessionSedeId = this.authService.getSedeId();
     this.programForm.reset({
       nombre: item.nombre ?? '',
       duracionSemestres: this.toNumber(item.duracionSemestres),
       nivel: item.nivel ?? '',
-      costoSemestral: this.toNumber(item.costoSemestral)
+      costoSemestral: this.toNumber(item.costoSemestral),
+      sedeId: this.toNumber(item.sedeId) ?? sessionSedeId ?? null,
+      estado: (item.estado as EstadoRegistro) ?? EstadoRegistro.ACTIVO
     });
+    if (this.needsSedeSelection && this.sedes.length === 0) {
+      this.loadSedes();
+    }
     this.showModal = true;
   }
 
@@ -242,7 +305,7 @@ export class ProgramasListPageComponent {
 
     const payload = this.buildPayload(this.programForm.getRawValue() as Record<string, unknown>);
     if (!payload) {
-      this.notificationService.error('La sesión no tiene institución asociada.');
+      this.notificationService.error('Debe seleccionar o tener una sede asociada para el programa.');
       return;
     }
 
@@ -284,6 +347,20 @@ export class ProgramasListPageComponent {
     return `$ ${amount.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
+  private loadSedes(): void {
+    this.sedeService.listar({ page: 0, size: 200 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        const data = response.data;
+        const sedes = Array.isArray(data) ? data : (data?.content ?? data?.items ?? []);
+        this.sedes = sedes;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.notificationService.error('No se pudieron cargar las sedes disponibles.');
+      }
+    });
+  }
+
   private loadProgramas(): void {
     this.loading = true;
     this.error = null;
@@ -315,8 +392,8 @@ export class ProgramasListPageComponent {
   }
 
   private buildPayload(payload: Record<string, unknown>): ProgramaRequest | null {
-    const institucionId = this.authService.getInstitucionId();
-    if (!institucionId) {
+    const sedeId = this.toNumber(payload['sedeId']) ?? this.authService.getSedeId();
+    if (!sedeId) {
       return null;
     }
 
@@ -325,7 +402,8 @@ export class ProgramasListPageComponent {
       duracionSemestres: this.toNumber(payload['duracionSemestres']),
       nivel: this.toText(payload['nivel']),
       costoSemestral: this.toNumber(payload['costoSemestral']),
-      institucionId
+      estado: (payload['estado'] as EstadoRegistro) ?? EstadoRegistro.ACTIVO,
+      sedeId
     };
   }
 

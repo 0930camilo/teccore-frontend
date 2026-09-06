@@ -8,6 +8,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   institucionId?: number | null;
+  sedeId?: number | null;
   rol: string;
 }
 

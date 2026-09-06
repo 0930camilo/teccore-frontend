@@ -5,6 +5,7 @@ export const environment = {
   authApi: 'http://localhost:8080/auth',
   usersApi: 'http://localhost:8080/usuarios',
   institutionsApi: 'http://localhost:8080/instituciones',
+  sedesApi: 'http://localhost:8080/sedes',
   studentsApi: 'http://localhost:8080/alumnos',
   teachersApi: 'http://localhost:8080/docentes',
   programsApi: 'http://localhost:8080/programas',

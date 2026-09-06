@@ -52,6 +52,10 @@ export class AuthService {
     return this.sessionState()?.institucionId ?? null;
   }
 
+  getSedeId(): number | null {
+    return this.sessionState()?.sedeId ?? null;
+  }
+
   isAuthenticated(): boolean {
     return Boolean(this.sessionState()?.token);
   }
@@ -64,6 +68,10 @@ export class AuthService {
     return this.getRol() === Rol.ADMIN_INSTITUCION;
   }
 
+  isAdminSede(): boolean {
+    return this.getRol() === Rol.ADMIN_SEDE;
+  }
+
   canManageInstitutions(): boolean {
     return this.isSuperAdmin();
   }
@@ -73,12 +81,16 @@ export class AuthService {
   }
 
   canAccessAcademicModules(): boolean {
-    return this.isAdminInstitucion();
+    return this.isAdminSede() || this.isAdminInstitucion();
   }
 
   getDefaultRoute(): string {
     if (this.isSuperAdmin()) {
       return '/instituciones';
+    }
+
+    if (this.isAdminInstitucion()) {
+      return '/sedes';
     }
 
     return '/dashboard';
@@ -95,7 +107,8 @@ export class AuthService {
       tipo: response.tipo,
       email: response.email,
       rol: response.rol as Rol,
-      institucionId: response.institucionId
+      institucionId: response.institucionId,
+      sedeId: response.sedeId ?? null
     };
 
     this.storage.saveSession(session);

@@ -4,5 +4,6 @@ export interface AuthResponse {
   email: string;
   rol: string;
   institucionId: number | null;
+  sedeId?: number | null;
 }
 

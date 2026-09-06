@@ -6,5 +6,6 @@ export interface SessionUsuario {
   email: string;
   rol: Rol | string;
   institucionId: number | null;
+  sedeId?: number | null;
 }
 

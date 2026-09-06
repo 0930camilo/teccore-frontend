@@ -5,6 +5,7 @@ export const environment = {
   authApi: 'https://teccore-backend.onrender.com/auth',
   usersApi: 'https://teccore-backend.onrender.com/usuarios',
   institutionsApi: 'https://teccore-backend.onrender.com/instituciones',
+  sedesApi: 'https://teccore-backend.onrender.com/sedes',
   studentsApi: 'https://teccore-backend.onrender.com/alumnos',
   teachersApi: 'https://teccore-backend.onrender.com/docentes',
   programsApi: 'https://teccore-backend.onrender.com/programas',

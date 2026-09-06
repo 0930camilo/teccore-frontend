@@ -72,7 +72,8 @@ export class SemestresListPageComponent implements OnInit {
       nombre: String(payload['nombre'] ?? '').trim(),
       numero: this.toNumber(payload['numero']),
       programaId: this.toNumber(payload['programaId']),
-      institucionId: this.authService.getInstitucionId()
+      institucionId: this.authService.getInstitucionId(),
+      sedeId: this.authService.getSedeId()
     };
   }
 

@@ -5,5 +5,6 @@ export interface Semestre {
   anio?: number;
   programaId?: number | null;
   institucionId?: number | null;
+  sedeId?: number | null;
 }
 

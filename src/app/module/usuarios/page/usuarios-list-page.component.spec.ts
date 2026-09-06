@@ -11,6 +11,8 @@ import { InstitucionService } from '../../instituciones/service/institucion.serv
 import { Rol } from '../../../shared/enums/rol.enum';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { Institucion } from '../../instituciones/model/institucion.model';
+import { Sede } from '../../sedes/model/sede.model';
+import { SedeService } from '../../sedes/service/sede.service';
 import { UsuarioService } from '../service/usuario.service';
 import { Usuario } from '../model/usuario.model';
 import { UsuariosListPageComponent } from './usuarios-list-page.component';
@@ -20,6 +22,7 @@ describe('UsuariosListPageComponent', () => {
   let component: UsuariosListPageComponent;
   let usuarioService: jasmine.SpyObj<UsuarioService>;
   let institucionService: jasmine.SpyObj<InstitucionService>;
+  let sedeService: jasmine.SpyObj<SedeService>;
   let authService: jasmine.SpyObj<AuthService>;
 
   const usuariosResponse = {
@@ -61,9 +64,26 @@ describe('UsuariosListPageComponent', () => {
     }
   } as const;
 
+  const sedesResponse = {
+    success: true,
+    status: 200,
+    message: 'Listado de sedes',
+    data: {
+      content: [
+        { id: 1, nombre: 'Sede Principal' },
+        { id: 2, nombre: 'Sede Norte' }
+      ],
+      page: 0,
+      size: 200,
+      totalElements: 2,
+      totalPages: 1
+    }
+  } as const;
+
   beforeEach(async () => {
     usuarioService = jasmine.createSpyObj<UsuarioService>('UsuarioService', ['listar', 'actualizar']);
     institucionService = jasmine.createSpyObj<InstitucionService>('InstitucionService', ['listar']);
+    sedeService = jasmine.createSpyObj<SedeService>('SedeService', ['listar']);
     authService = jasmine.createSpyObj<AuthService>('AuthService', ['isSuperAdmin']);
 
     usuarioService.listar.and.returnValue(of(usuariosResponse as unknown as ApiResponse<PaginacionRespuesta<Usuario>>));
@@ -82,6 +102,7 @@ describe('UsuariosListPageComponent', () => {
       }
     } as unknown as ApiResponse<Usuario>));
     institucionService.listar.and.returnValue(of(institucionesResponse as unknown as ApiResponse<PaginacionRespuesta<Institucion>>));
+    sedeService.listar.and.returnValue(of(sedesResponse as unknown as ApiResponse<PaginacionRespuesta<Sede>>));
     authService.isSuperAdmin.and.returnValue(true);
 
     await TestBed.configureTestingModule({
@@ -92,6 +113,7 @@ describe('UsuariosListPageComponent', () => {
         provideZonelessChangeDetection(),
         { provide: UsuarioService, useValue: usuarioService },
         { provide: InstitucionService, useValue: institucionService },
+        { provide: SedeService, useValue: sedeService },
         { provide: AuthService, useValue: authService },
         { provide: NotificationService, useValue: { error: jasmine.createSpy('error'), success: jasmine.createSpy('success') } }
       ]
@@ -156,6 +178,7 @@ describe('UsuariosListPageComponent', () => {
       email: 'ana.editada@test.com',
       rol: Rol.ADMIN_INSTITUCION,
       institucionId: 1,
+      sedeId: null,
       estado: 'ACTIVO'
     });
   });

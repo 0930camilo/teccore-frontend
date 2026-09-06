@@ -11,6 +11,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ESTADOS_REGISTRO, EstadoRegistro } from '../../../shared/enums/estado-registro.enum';
 import { Institucion } from '../../instituciones/model/institucion.model';
 import { InstitucionService } from '../../instituciones/service/institucion.service';
+import { Sede } from '../../sedes/model/sede.model';
+import { SedeService } from '../../sedes/service/sede.service';
 import { Rol } from '../../../shared/enums/rol.enum';
 import { ApiResponse } from '../../../shared/interface/api-response.interface';
 import { PaginacionRespuesta } from '../../../shared/interface/pagination.interface';
@@ -94,6 +96,7 @@ import { UsuarioService } from '../service/usuario.service';
               <th>Email</th>
               <th>Rol</th>
               <th>Institución</th>
+              <th>Sede</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -104,10 +107,18 @@ import { UsuarioService } from '../service/usuario.service';
               <td>{{ formatValue(item.email) }}</td>
               <td><span class="status-pill">{{ formatValue(item.rol) }}</span></td>
               <td>
-                <div class="institution-cell">
+                <div class="institution-cell" *ngIf="item.institucionNombre || item.institucionId">
                   <strong>{{ formatValue(item.institucionNombre) }}</strong>
                   <small>{{ item.institucionId ?? '—' }}</small>
                 </div>
+                <span *ngIf="!item.institucionNombre && !item.institucionId">—</span>
+              </td>
+              <td>
+                <div class="institution-cell" *ngIf="item.sedeNombre || item.sedeId">
+                  <strong>{{ formatValue(item.sedeNombre) }}</strong>
+                  <small>{{ item.sedeId ?? '—' }}</small>
+                </div>
+                <span *ngIf="!item.sedeNombre && !item.sedeId">—</span>
               </td>
               <td>
                 <span class="status-pill" [attr.data-state]="item.estado">
@@ -159,6 +170,21 @@ import { UsuarioService } from '../service/usuario.service';
               />
               <datalist id="edit-instituciones-list">
                 <option *ngFor="let institucion of editFilteredInstituciones()" [value]="institucion.nombre"></option>
+              </datalist>
+            </div>
+
+            <div class="field" *ngIf="showEditSedeField">
+              <label for="edit-sede">Sede <span class="required">*</span></label>
+              <input
+                id="edit-sede"
+                type="text"
+                [value]="editSedeNombre()"
+                (input)="onEditSedeInput($event)"
+                [attr.list]="loadingSedes() ? null : 'edit-sedes-list'"
+                placeholder="Escribe y selecciona una sede"
+              />
+              <datalist id="edit-sedes-list">
+                <option *ngFor="let sede of editFilteredSedes()" [value]="sede.nombre"></option>
               </datalist>
             </div>
 
@@ -490,6 +516,7 @@ export class UsuariosListPageComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly usuarioService = inject(UsuarioService);
   private readonly institucionService = inject(InstitucionService);
+  private readonly sedeService = inject(SedeService);
   private readonly notificationService = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
@@ -518,6 +545,19 @@ export class UsuariosListPageComponent implements OnInit {
     return this.instituciones().filter((item) => item.nombre.toLowerCase().includes(query));
   });
   readonly loadingInstituciones = signal(false);
+
+  readonly sedes = signal<Array<{ id: number; nombre: string }>>([]);
+  readonly editSedeNombre = signal('');
+  readonly editFilteredSedes = computed(() => {
+    const query = this.editSedeNombre().trim().toLowerCase();
+    if (!query) {
+      return this.sedes();
+    }
+
+    return this.sedes().filter((item) => item.nombre.toLowerCase().includes(query));
+  });
+  readonly loadingSedes = signal(false);
+
   readonly estados = ESTADOS_REGISTRO;
 
   loading = false;
@@ -536,6 +576,7 @@ export class UsuariosListPageComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     rol: this.fb.control<Rol | string>(Rol.ADMIN_INSTITUCION, { validators: [Validators.required], nonNullable: true }),
     institucionId: this.fb.control<number | null>(null),
+    sedeId: this.fb.control<number | null>(null),
     estado: this.fb.control<EstadoRegistro | string>(EstadoRegistro.ACTIVO, { validators: [Validators.required], nonNullable: true })
   });
 
@@ -546,6 +587,7 @@ export class UsuariosListPageComponent implements OnInit {
     }
 
     this.loadInstitutions();
+    this.loadSedes();
     this.loadUsuarios();
   }
 
@@ -584,11 +626,13 @@ export class UsuariosListPageComponent implements OnInit {
     this.editingId = id;
     this.showEditModal = true;
     this.editInstitucionNombre.set(item.institucionNombre ?? '');
+    this.editSedeNombre.set(item.sedeNombre ?? '');
     this.editForm.reset({
       nombre: item.nombre ?? '',
       email: item.email ?? '',
       rol: (item.rol ?? Rol.ADMIN_INSTITUCION) as Rol | string,
       institucionId: item.institucionId ?? null,
+      sedeId: item.sedeId ?? null,
       estado: (item.estado ?? EstadoRegistro.ACTIVO) as EstadoRegistro | string
     });
     this.syncEditRoleState();
@@ -612,6 +656,12 @@ export class UsuariosListPageComponent implements OnInit {
     this.editForm.controls.institucionId.setValue(this.resolveInstitutionId(value));
   }
 
+  onEditSedeInput(event: Event): void {
+    const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.editSedeNombre.set(value);
+    this.editForm.controls.sedeId.setValue(this.resolveSedeId(value));
+  }
+
   submitEdit(): void {
     if (this.editingId === null) {
       this.notificationService.error('No se pudo identificar el usuario a editar.');
@@ -627,7 +677,7 @@ export class UsuariosListPageComponent implements OnInit {
 
     const payload = this.buildUpdatePayload();
     if (!payload) {
-      this.notificationService.error('Debes seleccionar una institución válida para este rol.');
+      this.notificationService.error('Debes seleccionar los datos requeridos (institución o sede) para este rol.');
       return;
     }
 
@@ -665,7 +715,12 @@ export class UsuariosListPageComponent implements OnInit {
   }
 
   get showEditInstitutionField(): boolean {
-    return this.normalizeRole(this.editForm.controls.rol.value) !== Rol.SUPER_ADMIN;
+    return this.normalizeRole(this.editForm.controls.rol.value) === Rol.ADMIN_INSTITUCION;
+  }
+
+  get showEditSedeField(): boolean {
+    const r = this.normalizeRole(this.editForm.controls.rol.value);
+    return r !== Rol.SUPER_ADMIN && r !== Rol.ADMIN_INSTITUCION;
   }
 
   formatValue(value: unknown): string {
@@ -750,18 +805,33 @@ export class UsuariosListPageComponent implements OnInit {
     if (role === Rol.SUPER_ADMIN) {
       return {
         ...base,
-        institucionId: null
+        institucionId: null,
+        sedeId: null
       };
     }
 
-    const institucionId = this.resolveInstitutionId(this.editInstitucionNombre());
-    if (institucionId === null) {
+    if (role === Rol.ADMIN_INSTITUCION) {
+      const institucionId = this.resolveInstitutionId(this.editInstitucionNombre());
+      if (institucionId === null) {
+        return null;
+      }
+
+      return {
+        ...base,
+        institucionId,
+        sedeId: null
+      };
+    }
+
+    const sedeId = this.resolveSedeId(this.editSedeNombre());
+    if (sedeId === null) {
       return null;
     }
 
     return {
       ...base,
-      institucionId
+      institucionId: null,
+      sedeId
     };
   }
 
@@ -773,13 +843,67 @@ export class UsuariosListPageComponent implements OnInit {
       this.editForm.controls.institucionId.clearValidators();
       this.editForm.controls.institucionId.setValue(null, { emitEvent: false });
       this.editInstitucionNombre.set('');
-    } else {
+      this.editForm.controls.sedeId.clearValidators();
+      this.editForm.controls.sedeId.setValue(null, { emitEvent: false });
+      this.editSedeNombre.set('');
+    } else if (role === Rol.ADMIN_INSTITUCION) {
       this.editForm.controls.institucionId.setValidators([Validators.required, Validators.min(1)]);
       this.editForm.controls.institucionId.setValue(this.resolveInstitutionId(this.editInstitucionNombre()), { emitEvent: false });
+      this.editForm.controls.sedeId.clearValidators();
+      this.editForm.controls.sedeId.setValue(null, { emitEvent: false });
+      this.editSedeNombre.set('');
+    } else {
+      this.editForm.controls.institucionId.clearValidators();
+      this.editForm.controls.institucionId.setValue(null, { emitEvent: false });
+      this.editInstitucionNombre.set('');
+      this.editForm.controls.sedeId.setValidators([Validators.required, Validators.min(1)]);
+      this.editForm.controls.sedeId.setValue(this.resolveSedeId(this.editSedeNombre()), { emitEvent: false });
     }
 
     this.editForm.controls.institucionId.updateValueAndValidity({ emitEvent: false });
+    this.editForm.controls.sedeId.updateValueAndValidity({ emitEvent: false });
     this.editForm.controls.rol.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private loadSedes(): void {
+    this.loadingSedes.set(true);
+
+    this.sedeService.listar({ page: 0, size: 200 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        const records = this.extractSedes(response.data);
+        this.sedes.set(
+          records
+            .map((item) => ({ id: item.id ?? 0, nombre: item.nombre?.trim() ?? '' }))
+            .filter((item) => Number.isFinite(item.id) && item.id > 0 && item.nombre.length > 0)
+            .sort((a, b) => a.nombre.localeCompare(b.nombre))
+        );
+        this.loadingSedes.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.sedes.set([]);
+        this.loadingSedes.set(false);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private resolveSedeId(value: string): number | null {
+    const query = value.trim().toLowerCase();
+    if (!query) {
+      return null;
+    }
+
+    const selected = this.sedes().find((item) => item.nombre.toLowerCase() === query);
+    return selected?.id ?? null;
+  }
+
+  private extractSedes(data: PaginacionRespuesta<Sede> | Sede[] | null | undefined): Sede[] {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    return (data?.content ?? data?.items ?? data?.data ?? []) as Sede[];
   }
 
   private normalizeRole(value: Rol | string | null | undefined): Rol | string {

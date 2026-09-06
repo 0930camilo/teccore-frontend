@@ -15,16 +15,18 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Usuarios', route: '/usuarios', roles: [Rol.SUPER_ADMIN] },
   { label: 'Instituciones', route: '/instituciones', roles: [Rol.SUPER_ADMIN] },
   { label: 'Crear administrador institucional', route: '/administradores/nuevo', roles: [Rol.SUPER_ADMIN] },
-  { label: 'Dashboard', route: '/dashboard', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE, Rol.AUXILIAR_CONTABLE] },
-  { label: 'Programas', route: '/programas', roles: [Rol.ADMIN_INSTITUCION] },
-  { label: 'Semestres', route: '/semestres', roles: [Rol.ADMIN_INSTITUCION] },
-  { label: 'Docentes', route: '/docentes', roles: [Rol.ADMIN_INSTITUCION] },
-  { label: 'Alumnos', route: '/alumnos', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
-  { label: 'Materias', route: '/materias', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
-  { label: 'Notas', route: '/notas', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
-  { label: 'Actividades', route: '/actividades', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
-  { label: 'Pagos', route: '/pagos', roles: [Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] },
-  { label: 'Reportes', route: '/reportes', roles: [Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] }
+  { label: 'Sedes', route: '/sedes', roles: [Rol.ADMIN_INSTITUCION, Rol.SUPER_ADMIN] },
+  { label: 'Crear administrador de sede', route: '/administradores/nuevo', roles: [Rol.ADMIN_INSTITUCION] },
+  { label: 'Dashboard', route: '/dashboard', roles: [Rol.ADMIN_INSTITUCION, Rol.ADMIN_SEDE, Rol.DOCENTE, Rol.ESTUDIANTE, Rol.AUXILIAR_CONTABLE] },
+  { label: 'Programas', route: '/programas', roles: [Rol.ADMIN_SEDE, Rol.DOCENTE] },
+  { label: 'Semestres', route: '/semestres', roles: [Rol.ADMIN_SEDE] },
+  { label: 'Docentes', route: '/docentes', roles: [Rol.ADMIN_SEDE] },
+  { label: 'Alumnos', route: '/alumnos', roles: [Rol.ADMIN_SEDE, Rol.DOCENTE] },
+  { label: 'Materias', route: '/materias', roles: [Rol.ADMIN_SEDE, Rol.DOCENTE] },
+  { label: 'Notas', route: '/notas', roles: [Rol.ADMIN_SEDE, Rol.DOCENTE, Rol.ESTUDIANTE] },
+  { label: 'Actividades', route: '/actividades', roles: [Rol.ADMIN_SEDE, Rol.DOCENTE, Rol.ESTUDIANTE] },
+  { label: 'Pagos', route: '/pagos', roles: [Rol.ADMIN_INSTITUCION, Rol.ADMIN_SEDE, Rol.AUXILIAR_CONTABLE] },
+  { label: 'Reportes', route: '/reportes', roles: [Rol.ADMIN_INSTITUCION, Rol.ADMIN_SEDE, Rol.AUXILIAR_CONTABLE] }
 ];
 
 @Component({

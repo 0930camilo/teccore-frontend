@@ -9,6 +9,8 @@ export interface Usuario {
   rol?: Rol | string;
   institucionId?: number | null;
   institucionNombre?: string | null;
+  sedeId?: number | null;
+  sedeNombre?: string | null;
   estado?: EstadoRegistro | string | null;
 }
 
@@ -17,6 +19,7 @@ export interface UsuarioFiltros extends PaginacionRequest {
   rol?: Rol | string;
   nombre?: string;
   institucionId?: number | null;
+  sedeId?: number | null;
 }
 
 export interface UsuarioUpdateRequest {
@@ -24,6 +27,7 @@ export interface UsuarioUpdateRequest {
   email: string;
   rol: Rol | string;
   institucionId?: number | null;
+  sedeId?: number | null;
   estado: EstadoRegistro | string;
 }
 
