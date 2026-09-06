@@ -1,8 +1,8 @@
 export interface AuthResponse {
   token: string;
-  tipo: string;
+  tipo: 'Bearer' | string;
   email: string;
   rol: string;
-  institucionId: number;
+  institucionId: number | null;
 }
 

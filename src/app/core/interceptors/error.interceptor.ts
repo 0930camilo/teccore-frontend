@@ -15,7 +15,7 @@ function resolveMessage(error: HttpErrorResponse): string {
     case 400:
       return backendMessage || 'Solicitud inválida.';
     case 403:
-      return 'No tienes permisos para realizar esta acción.';
+      return backendMessage || 'No tienes permisos para realizar esta acción.';
     case 404:
       return 'No se encontró el recurso solicitado.';
     case 500:

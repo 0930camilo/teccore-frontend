@@ -12,16 +12,19 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Dashboard', route: '/dashboard', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE, Rol.AUXILIAR_CONTABLE] },
-  { label: 'Instituciones', route: '/instituciones', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION] },
-  { label: 'Docentes', route: '/docentes', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION] },
-  { label: 'Alumnos', route: '/alumnos', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
-  { label: 'Cursos', route: '/cursos', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
-  { label: 'Materias', route: '/materias', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
-  { label: 'Notas', route: '/notas', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
-  { label: 'Actividades', route: '/actividades', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
-  { label: 'Pagos', route: '/pagos', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] },
-  { label: 'Reportes', route: '/reportes', roles: [Rol.SUPER_ADMIN, Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] }
+  { label: 'Usuarios', route: '/usuarios', roles: [Rol.SUPER_ADMIN] },
+  { label: 'Instituciones', route: '/instituciones', roles: [Rol.SUPER_ADMIN] },
+  { label: 'Crear administrador institucional', route: '/administradores/nuevo', roles: [Rol.SUPER_ADMIN] },
+  { label: 'Dashboard', route: '/dashboard', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE, Rol.AUXILIAR_CONTABLE] },
+  { label: 'Programas', route: '/programas', roles: [Rol.ADMIN_INSTITUCION] },
+  { label: 'Semestres', route: '/semestres', roles: [Rol.ADMIN_INSTITUCION] },
+  { label: 'Docentes', route: '/docentes', roles: [Rol.ADMIN_INSTITUCION] },
+  { label: 'Alumnos', route: '/alumnos', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
+  { label: 'Materias', route: '/materias', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE] },
+  { label: 'Notas', route: '/notas', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
+  { label: 'Actividades', route: '/actividades', roles: [Rol.ADMIN_INSTITUCION, Rol.DOCENTE, Rol.ESTUDIANTE] },
+  { label: 'Pagos', route: '/pagos', roles: [Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] },
+  { label: 'Reportes', route: '/reportes', roles: [Rol.ADMIN_INSTITUCION, Rol.AUXILIAR_CONTABLE] }
 ];
 
 @Component({

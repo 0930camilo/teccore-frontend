@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
@@ -16,7 +16,7 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
         [placeholder]="placeholder"
         autocomplete="off"
       />
-      <button type="button" class="clear" (click)="clear()" [disabled]="!control.value">
+      <button *ngIf="showClearButton" type="button" class="clear" (click)="clear()" [disabled]="!control.value">
         Limpiar
       </button>
     </label>
@@ -63,7 +63,9 @@ export class SearchInputComponent implements OnInit, OnDestroy {
   @Input() placeholder = 'Buscar...';
   @Input() label = 'Buscar registros';
   @Input() initialValue = '';
+  @Input() showClearButton = true;
   @Output() searchChange = new EventEmitter<string>();
+  @Output() clearEvent = new EventEmitter<void>();
 
   readonly control = new FormControl('', { nonNullable: true });
   private readonly destroy$ = new Subject<void>();
@@ -79,8 +81,8 @@ export class SearchInputComponent implements OnInit, OnDestroy {
   }
 
   clear(): void {
-    this.control.setValue('');
-    this.searchChange.emit('');
+    this.control.setValue('', { emitEvent: false });
+    this.clearEvent.emit();
   }
 
   ngOnDestroy(): void {

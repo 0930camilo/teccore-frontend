@@ -7,6 +7,8 @@ export const environment = {
   institutionsApi: 'https://teccore-backend.onrender.com/instituciones',
   studentsApi: 'https://teccore-backend.onrender.com/alumnos',
   teachersApi: 'https://teccore-backend.onrender.com/docentes',
+  programsApi: 'https://teccore-backend.onrender.com/programas',
+  semestersApi: 'https://teccore-backend.onrender.com/semestres',
   coursesApi: 'https://teccore-backend.onrender.com/cursos',
   subjectsApi: 'https://teccore-backend.onrender.com/materias',
   gradesApi: 'https://teccore-backend.onrender.com/notas',

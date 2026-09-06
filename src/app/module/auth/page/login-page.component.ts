@@ -135,7 +135,7 @@ export class LoginPageComponent {
     ).subscribe({
       next: () => {
         this.notificationService.success('Sesión iniciada correctamente.');
-        void this.router.navigateByUrl('/dashboard');
+        void this.router.navigateByUrl(this.authService.getDefaultRoute());
       },
       error: () => {
         this.notificationService.error('No fue posible iniciar sesión.');

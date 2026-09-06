@@ -7,6 +7,8 @@ export const environment = {
   institutionsApi: 'http://localhost:8080/instituciones',
   studentsApi: 'http://localhost:8080/alumnos',
   teachersApi: 'http://localhost:8080/docentes',
+  programsApi: 'http://localhost:8080/programas',
+  semestersApi: 'http://localhost:8080/semestres',
   coursesApi: 'http://localhost:8080/cursos',
   subjectsApi: 'http://localhost:8080/materias',
   gradesApi: 'http://localhost:8080/notas',

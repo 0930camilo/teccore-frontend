@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
+import { Institucion } from '../../../module/instituciones/model/institucion.model';
+import { InstitucionService } from '../../../module/instituciones/service/institucion.service';
 import { Rol } from '../../../shared/enums/rol.enum';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { AuthApiService } from '../service/auth-api.service';
@@ -14,8 +17,8 @@ import { AuthApiService } from '../service/auth-api.service';
   template: `
     <section class="auth-page">
       <form [formGroup]="form" (ngSubmit)="submit()" class="auth-card">
-        <h1>Crear usuario</h1>
-        <p>Registro de administradores y usuarios autorizados.</p>
+        <h1>{{ pageTitle }}</h1>
+        <p>{{ pageDescription }}</p>
 
         <label>
           <span>Nombre</span>
@@ -35,19 +38,32 @@ import { AuthApiService } from '../service/auth-api.service';
         </label>
         <small class="error" *ngIf="campoInvalido('password')">Este campo es obligatorio y debe tener al menos 6 caracteres.</small>
 
-        <label>
-          <span>Institución ID</span>
-          <input type="number" formControlName="institucionId" min="1" />
+        <label *ngIf="showInstitutionField">
+          <span>Institución</span>
+          <input
+            type="text"
+            [value]="institutionName()"
+            (input)="onInstitutionInput($event)"
+            [attr.list]="loadingInstituciones() ? null : 'instituciones-list'"
+            [placeholder]="loadingInstituciones() ? 'Cargando instituciones...' : 'Escribe y selecciona una institución'"
+          />
+          <datalist id="instituciones-list">
+            <option *ngFor="let institucion of filteredInstituciones()" [value]="institucion.nombre"></option>
+          </datalist>
         </label>
-        <small class="error" *ngIf="campoInvalido('institucionId')">Este campo es obligatorio y debe ser un número válido.</small>
+        <small class="error" *ngIf="showInstitutionField && campoInvalido('institucionId')">Debes seleccionar una institución.</small>
+        <small class="hint" *ngIf="showInstitutionField && !loadingInstituciones() && instituciones().length === 0">No hay instituciones disponibles para asignar.</small>
+        <small class="hint" *ngIf="showInstitutionField && !loadingInstituciones() && instituciones().length > 0 && institutionName().trim() && filteredInstituciones().length === 0">No se encontraron instituciones con ese nombre.</small>
 
         <label>
           <span>Rol</span>
           <select formControlName="rol">
-            <option *ngFor="let rol of roles" [value]="rol">{{ rol }}</option>
+            <option *ngFor="let rol of availableRoles" [value]="rol">{{ rol }}</option>
           </select>
         </label>
         <small class="error" *ngIf="campoInvalido('rol')">Seleccione un rol válido.</small>
+
+        <small class="hint" *ngIf="isSuperAdminMode">Solo puedes registrar usuarios con rol ADMIN_INSTITUCION.</small>
 
         <button type="submit" [disabled]="loading() || form.invalid">
           {{ loading() ? 'Registrando...' : 'Registrar' }}
@@ -127,24 +143,78 @@ import { AuthApiService } from '../service/auth-api.service';
     .footer {
       text-align: center;
     }
+
+    .hint {
+      color: #475569;
+      margin-top: -0.35rem;
+    }
   `]
 })
-export class RegisterPageComponent {
+export class RegisterPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
   private readonly authApi = inject(AuthApiService);
+  private readonly institucionService = inject(InstitucionService);
   private readonly router = inject(Router);
   private readonly notificationService = inject(NotificationService);
 
   loading = signal(false);
-  readonly roles = Object.values(Rol);
+  loadingInstituciones = signal(false);
+  institutionName = signal('');
+  instituciones = signal<Array<{ id: number; nombre: string }>>([]);
+  filteredInstituciones = computed(() => {
+    const query = this.institutionName().trim().toLowerCase();
+    if (!query) {
+      return this.instituciones();
+    }
 
-  readonly form = this.fb.nonNullable.group({
+    return this.instituciones().filter((item) => item.nombre.toLowerCase().includes(query));
+  });
+  readonly availableRoles: Rol[] = [];
+
+  readonly form = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
-    institucionId: [1, [Validators.required, Validators.min(1)]],
-    rol: [Rol.ADMIN_INSTITUCION, [Validators.required]]
+    institucionId: this.fb.control<number | null>(null),
+    rol: this.fb.control<Rol>(Rol.SUPER_ADMIN, { validators: [Validators.required], nonNullable: true })
   });
+
+  get isAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
+  get isSuperAdminMode(): boolean {
+    return this.isAuthenticated && this.authService.isSuperAdmin();
+  }
+
+  get showInstitutionField(): boolean {
+    return this.isSuperAdminMode;
+  }
+
+  get pageTitle(): string {
+    return this.isSuperAdminMode ? 'Crear administrador institucional' : 'Crear SUPER_ADMIN';
+  }
+
+  get pageDescription(): string {
+    return this.isSuperAdminMode
+      ? 'Solo el SUPER_ADMIN puede registrar administradores institucionales.'
+      : 'Registro inicial del dueño global del software.';
+  }
+
+  ngOnInit(): void {
+    if (this.isAuthenticated && !this.authService.isSuperAdmin()) {
+      this.notificationService.error('No tienes permisos para registrar usuarios.');
+      void this.router.navigateByUrl(this.authService.getDefaultRoute());
+      return;
+    }
+
+    this.configureFormForContext();
+
+    if (this.isSuperAdminMode) {
+      this.loadInstitutionOptions();
+    }
+  }
 
   submit(): void {
     if (this.form.invalid) {
@@ -153,13 +223,34 @@ export class RegisterPageComponent {
     }
 
     this.loading.set(true);
-    const request = this.form.getRawValue();
+    const value = this.form.getRawValue();
+    const request = {
+      nombre: value.nombre?.trim() ?? '',
+      email: value.email?.trim() ?? '',
+      password: value.password ?? '',
+      rol: value.rol,
+      institucionId: this.showInstitutionField ? value.institucionId : undefined
+    };
 
     this.authApi.register(request).pipe(
       finalize(() => this.loading.set(false))
     ).subscribe({
       next: () => {
         this.notificationService.success('Usuario registrado correctamente.');
+        if (this.isSuperAdminMode) {
+          this.form.reset({
+            nombre: '',
+            email: '',
+            password: '',
+            institucionId: null,
+            rol: Rol.ADMIN_INSTITUCION
+          });
+          this.institutionName.set('');
+          this.form.markAsPristine();
+          this.form.markAsUntouched();
+          return;
+        }
+
         void this.router.navigateByUrl('/login');
       },
       error: () => {
@@ -171,6 +262,61 @@ export class RegisterPageComponent {
   campoInvalido(name: 'nombre' | 'email' | 'password' | 'institucionId' | 'rol'): boolean {
     const control = this.form.controls[name];
     return control.invalid && (control.touched || control.dirty);
+  }
+
+  onInstitutionInput(event: Event): void {
+    const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.institutionName.set(value);
+
+    const selected = this.instituciones().find((item) => item.nombre.toLowerCase() === value.trim().toLowerCase());
+    this.form.controls.institucionId.setValue(selected?.id ?? null);
+  }
+
+  private configureFormForContext(): void {
+    this.availableRoles.splice(0, this.availableRoles.length, ...(this.isSuperAdminMode ? [Rol.ADMIN_INSTITUCION] : [Rol.SUPER_ADMIN]));
+
+    this.form.controls.rol.setValue(this.isSuperAdminMode ? Rol.ADMIN_INSTITUCION : Rol.SUPER_ADMIN);
+
+    if (this.isSuperAdminMode) {
+      this.form.controls.institucionId.setValidators([Validators.required, Validators.min(1)]);
+    } else {
+      this.form.controls.institucionId.clearValidators();
+      this.form.controls.institucionId.setValue(null);
+    }
+
+    this.form.controls.institucionId.updateValueAndValidity();
+  }
+
+  private loadInstitutionOptions(): void {
+    this.loadingInstituciones.set(true);
+
+    this.institucionService.listar({ page: 0, size: 200 }).pipe(
+      finalize(() => this.loadingInstituciones.set(false))
+    ).subscribe({
+      next: (response) => {
+        const records = this.extractInstituciones(response.data);
+        const options = records
+          .map((item) => ({ id: item.id, nombre: item.nombre?.trim() ?? '' }))
+          .filter((item): item is { id: number; nombre: string } => Number.isFinite(item.id) && item.nombre.length > 0)
+          .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        this.instituciones.set(options);
+        this.institutionName.set('');
+      },
+      error: () => {
+        this.instituciones.set([]);
+        this.notificationService.error('No fue posible cargar las instituciones disponibles.');
+      }
+    });
+  }
+
+  private extractInstituciones(data: unknown): Institucion[] {
+    if (Array.isArray(data)) {
+      return data as Institucion[];
+    }
+
+    const payload = data as { content?: Institucion[]; items?: Institucion[]; data?: Institucion[] } | null | undefined;
+    return payload?.content ?? payload?.items ?? payload?.data ?? [];
   }
 }
 

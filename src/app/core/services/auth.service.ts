@@ -56,6 +56,34 @@ export class AuthService {
     return Boolean(this.sessionState()?.token);
   }
 
+  isSuperAdmin(): boolean {
+    return this.getRol() === Rol.SUPER_ADMIN;
+  }
+
+  isAdminInstitucion(): boolean {
+    return this.getRol() === Rol.ADMIN_INSTITUCION;
+  }
+
+  canManageInstitutions(): boolean {
+    return this.isSuperAdmin();
+  }
+
+  canCreateInstitutionAdmins(): boolean {
+    return this.isSuperAdmin();
+  }
+
+  canAccessAcademicModules(): boolean {
+    return this.isAdminInstitucion();
+  }
+
+  getDefaultRoute(): string {
+    if (this.isSuperAdmin()) {
+      return '/instituciones';
+    }
+
+    return '/dashboard';
+  }
+
   hasRole(roles: string[]): boolean {
     const currentRole = this.getRol();
     return Boolean(currentRole && roles.includes(currentRole));

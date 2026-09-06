@@ -16,11 +16,15 @@ export class ResourceApiService {
     });
   }
 
-  crear<TRespuesta>(baseUrl: string, body: Record<string, unknown>): Observable<ApiResponse<TRespuesta>> {
+  crear<TRespuesta>(baseUrl: string, body: object): Observable<ApiResponse<TRespuesta>> {
     return this.http.post<ApiResponse<TRespuesta>>(baseUrl, body);
   }
 
-  consultar<TRespuesta>(baseUrl: string, params: Record<string, string | number | boolean | null | undefined>): Observable<ApiResponse<TRespuesta>> {
+  actualizar<TRespuesta>(baseUrl: string, id: number | string, body: object): Observable<ApiResponse<TRespuesta>> {
+    return this.http.put<ApiResponse<TRespuesta>>(`${baseUrl}/${id}`, body);
+  }
+
+  consultar<TRespuesta>(baseUrl: string, params: object): Observable<ApiResponse<TRespuesta>> {
     return this.http.get<ApiResponse<TRespuesta>>(baseUrl, {
       params: this.buildParams(params)
     });

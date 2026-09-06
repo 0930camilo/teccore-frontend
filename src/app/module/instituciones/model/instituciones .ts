@@ -1,4 +1,1 @@
-﻿export interface Institucion {
-  id?: number | string;
-  [key: string]: unknown;
-}
+﻿export * from './institucion.model';

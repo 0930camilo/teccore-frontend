@@ -2,9 +2,9 @@ import { Rol } from '../enums/rol.enum';
 
 export interface SessionUsuario {
   token: string;
-  tipo: string;
+  tipo: 'Bearer' | string;
   email: string;
   rol: Rol | string;
-  institucionId: number;
+  institucionId: number | null;
 }
 
