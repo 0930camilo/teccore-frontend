@@ -34,11 +34,29 @@ import { ProgramaService } from '../service/programa.service';
         </div>
       </header>
 
-      <app-search-input
-        [placeholder]="'Filtrar por nombre de programa'"
-        [showClearButton]="false"
-        (searchChange)="onSearchChange($event)"
-      ></app-search-input>
+      <div class="filters">
+        <app-search-input
+          [placeholder]="'Filtrar por nombre de programa'"
+          [showClearButton]="false"
+          (searchChange)="onSearchChange($event)"
+        ></app-search-input>
+
+        <select
+          class="status-filter"
+          [value]="estadoFiltro"
+          (change)="onEstadoChange($event)"
+          aria-label="Filtrar por estado"
+        >
+          <option value="">Todos los estados</option>
+
+          <option
+            *ngFor="let estado of estados"
+            [value]="estado"
+          >
+            {{ estadoLabel(estado) }}
+          </option>
+        </select>
+      </div>
 
       <app-loading *ngIf="loading"></app-loading>
 
@@ -175,34 +193,66 @@ import { ProgramaService } from '../service/programa.service';
     .status-pill[data-state='ACTIVO'] { background: #dcfce7; color: #15803d; }
     .status-pill[data-state='INACTIVO'] { background: #fee2e2; color: #b91c1c; }
     .status-pill[data-state='PENDIENTE'] { background: #fef9c3; color: #854d0e; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .status-filter {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.8rem 1rem;
+      border-radius: 0.85rem;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .status-filter:focus {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
     @media (max-width: 640px) {
       .resource-card__header, .header-actions, .modal__footer { flex-direction: column; align-items: stretch; }
       .modal__body { grid-template-columns: 1fr; }
       .btn-new, .refresh, .btn-edit, .btn-cancel, .btn-submit { width: 100%; }
     }
   `]
-})
-export class ProgramasListPageComponent implements OnInit {
+})export class ProgramasListPageComponent implements OnInit {
+
+  private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProgramaService);
-  private readonly sedeService = inject(SedeService);
   private readonly authService = inject(AuthService);
+  private readonly sedeService = inject(SedeService);
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly fb = inject(FormBuilder);
 
   readonly estados = ESTADOS_REGISTRO;
+
   sedes: Sede[] = [];
+
   loading = false;
   saving = false;
   showModal = false;
   error: string | null = null;
+
   items: Programa[] = [];
+
   page = 0;
   size = 10;
   total = 0;
+
   query = '';
+  estadoFiltro: EstadoRegistro | '' = '';
+
   editingId: number | null = null;
+
 
   readonly programForm = this.fb.group({
     nombre: ['', [Validators.required]],
@@ -234,11 +284,28 @@ export class ProgramasListPageComponent implements OnInit {
 
   estadoLabel(estado: EstadoRegistro | string | null | undefined): string {
     if (!estado) return '—';
-    return String(estado).toUpperCase();
+    switch (String(estado)) {
+      case EstadoRegistro.ACTIVO:
+        return 'Activo';
+      case EstadoRegistro.INACTIVO:
+        return 'Inactivo';
+      case EstadoRegistro.ANULADO:
+        return 'Anulado';
+      case EstadoRegistro.PENDIENTE:
+        return 'Pendiente';
+      default:
+        return String(estado);
+    }
   }
-
   onSearchChange(query: string): void {
     this.query = query.trim();
+    this.page = 0;
+    this.loadProgramas();
+  }
+
+  onEstadoChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.estadoFiltro = select.value as EstadoRegistro | '';
     this.page = 0;
     this.loadProgramas();
   }
@@ -386,9 +453,12 @@ export class ProgramasListPageComponent implements OnInit {
   private buildFilters(): PaginacionRequest {
     return {
       q: this.query || undefined,
+      nombre: this.query || undefined,
       page: this.page,
-      size: this.size
+      size: this.size,
+      estado: this.estadoFiltro || undefined
     };
+
   }
 
   private buildPayload(payload: Record<string, unknown>): ProgramaRequest | null {

@@ -1,4 +1,1 @@
-﻿export interface Materia {
-  id?: number | string;
-  [key: string]: unknown;
-}
+﻿export * from './materia.model';

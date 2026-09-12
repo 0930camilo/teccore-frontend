@@ -1,28 +1,37 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+
+import { ResourceApiService } from '../../../shared/services/resource-api.service';
 import { ApiResponse } from '../../../shared/interface/api-response.interface';
 import { PaginacionRequest, PaginacionRespuesta } from '../../../shared/interface/pagination.interface';
-import { ResourceApiService } from '../../../shared/services/resource-api.service';
 import { Programa, ProgramaRequest, ProgramaUpdateRequest } from '../model/programa.model';
+
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProgramaService {
+
   private readonly api = inject(ResourceApiService);
   private readonly url = environment.programsApi;
 
-  listar(filtros: PaginacionRequest): Observable<ApiResponse<PaginacionRespuesta<Programa>>> {
+  listar(
+    filtros: PaginacionRequest
+  ): Observable<ApiResponse<PaginacionRespuesta<Programa>>> {
     return this.api.listar<Programa>(this.url, filtros);
   }
 
-  crear(payload: ProgramaRequest): Observable<ApiResponse<Programa>> {
+  crear(
+    payload: ProgramaRequest
+  ): Observable<ApiResponse<Programa>> {
     return this.api.crear<Programa>(this.url, payload);
   }
 
-  actualizar(id: number, payload: ProgramaUpdateRequest): Observable<ApiResponse<Programa>> {
+  actualizar(
+    id: number,
+    payload: ProgramaUpdateRequest
+  ): Observable<ApiResponse<Programa>> {
     return this.api.actualizar<Programa>(this.url, id, payload);
   }
 }
-

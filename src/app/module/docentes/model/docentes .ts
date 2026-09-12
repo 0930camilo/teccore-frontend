@@ -1,4 +1,1 @@
-﻿export interface Docente {
-  id?: number | string;
-  [key: string]: unknown;
-}
+﻿export * from './docente.model';

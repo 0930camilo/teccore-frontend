@@ -21,4 +21,3 @@ export interface ProgramaRequest {
 }
 
 export type ProgramaUpdateRequest = ProgramaRequest;
-

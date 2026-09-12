@@ -24,6 +24,14 @@ export class ResourceApiService {
     return this.http.put<ApiResponse<TRespuesta>>(`${baseUrl}/${id}`, body);
   }
 
+  obtenerPorId<TRespuesta>(baseUrl: string, id: number | string): Observable<ApiResponse<TRespuesta>> {
+    return this.http.get<ApiResponse<TRespuesta>>(`${baseUrl}/${id}`);
+  }
+
+  eliminar<TRespuesta = void>(baseUrl: string, id: number | string): Observable<ApiResponse<TRespuesta>> {
+    return this.http.delete<ApiResponse<TRespuesta>>(`${baseUrl}/${id}`);
+  }
+
   consultar<TRespuesta>(baseUrl: string, params: object): Observable<ApiResponse<TRespuesta>> {
     return this.http.get<ApiResponse<TRespuesta>>(baseUrl, {
       params: this.buildParams(params)

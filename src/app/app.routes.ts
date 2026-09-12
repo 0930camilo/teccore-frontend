@@ -70,7 +70,7 @@ export const routes: Routes = [
 		path: 'docentes',
 		loadComponent: () => import('./module/docentes/page/docentes-list-page.component').then((m) => m.DocenteListPageComponent),
 		canActivate: [roleGuard],
-		data: { roles: [Rol.ADMIN_SEDE] }
+		data: { roles: [Rol.ADMIN_INSTITUCION, Rol.ADMIN_SEDE] }
 	  },
 	  {
 		path: 'alumnos',
@@ -82,7 +82,7 @@ export const routes: Routes = [
 		path: 'materias',
 		loadComponent: () => import('./module/materias/page/materias-list-page.component').then((m) => m.MateriaListPageComponent),
 		canActivate: [roleGuard],
-		data: { roles: [Rol.ADMIN_SEDE, Rol.DOCENTE] }
+		data: { roles: [Rol.ADMIN_INSTITUCION, Rol.ADMIN_SEDE, Rol.DOCENTE] }
 	  },
 	  {
 		path: 'notas',
