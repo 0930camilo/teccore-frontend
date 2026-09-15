@@ -36,7 +36,7 @@ import { DocenteService } from '../service/docente.service';
           <input
             id="search-input"
             type="search"
-            placeholder="Buscar por nombre o apellido..."
+            placeholder="Buscar por nombre o Documento..."
             [value]="query"
             (input)="onSearch($event)"
           />
@@ -59,7 +59,7 @@ import { DocenteService } from '../service/docente.service';
          <table *ngIf="!loading && items.length > 0" class="table">
            <thead>
              <tr>
-               <th>ID</th>
+
                <th>Nombres</th>
                <th>Apellidos</th>
                <th>Documento</th>
@@ -70,7 +70,7 @@ import { DocenteService } from '../service/docente.service';
            </thead>
            <tbody>
              <tr *ngFor="let item of items">
-               <td>{{ formatValue(item.id) }}</td>
+
                <td>{{ formatValue(item.nombres) }}</td>
                <td>{{ formatValue(item.apellidos) }}</td>
                <td>{{ formatValue(item.documento) }}</td>

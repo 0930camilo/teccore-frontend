@@ -1,16 +1,33 @@
 ﻿import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
+
 import { AuthService } from '../../../core/services/auth.service';
 import { Rol } from '../../../shared/enums/rol.enum';
-import { PaginacionRequest, PaginacionRespuesta } from '../../../shared/interface/pagination.interface';
+import {
+  PaginacionRequest,
+  PaginacionRespuesta
+} from '../../../shared/interface/pagination.interface';
 import { NotificationService } from '../../../shared/services/notification.service';
+
 import { Docente } from '../../docentes/model/docente.model';
 import { DocenteService } from '../../docentes/service/docente.service';
+
 import { Semestre } from '../../semestres/model/semestre.model';
 import { SemestreService } from '../../semestres/service/semestre.service';
-import { Materia, MateriaRequest, MateriaUpdateRequest } from '../model/materia.model';
+
+import {
+  DiaSemana,
+  Materia,
+  MateriaRequest,
+  MateriaUpdateRequest
+} from '../model/materia.model';
 import { MateriaService } from '../service/materia.service';
 
 @Component({
@@ -24,11 +41,23 @@ import { MateriaService } from '../service/materia.service';
           <h1>{{ titulo }}</h1>
           <p>{{ descripcion }}</p>
         </div>
+
         <div class="actions">
-          <button type="button" class="btn-refresh" (click)="loadMaterias()" [disabled]="loading">
+          <button
+            type="button"
+            class="btn-refresh"
+            (click)="loadMaterias()"
+            [disabled]="loading"
+          >
             {{ loading ? 'Actualizando...' : 'Actualizar' }}
           </button>
-          <button *ngIf="canManage" type="button" class="btn-primary" (click)="openCreateModal()">
+
+          <button
+            *ngIf="canManage"
+            type="button"
+            class="btn-primary"
+            (click)="openCreateModal()"
+          >
             + Nueva materia
           </button>
         </div>
@@ -56,73 +85,159 @@ import { MateriaService } from '../service/materia.service';
           Cargando materias...
         </div>
 
-        <div *ngIf="!loading && items.length === 0" class="state-message state-message--empty">
+        <div
+          *ngIf="!loading && items.length === 0"
+          class="state-message state-message--empty"
+        >
           No hay materias registradas.
         </div>
 
-        <table *ngIf="!loading && items.length > 0" class="table">
-          <thead>
+        <div class="table-wrapper" *ngIf="!loading && items.length > 0">
+          <table class="table">
+            <thead>
             <tr>
-              <th>ID</th>
               <th>Nombre</th>
               <th>Semestre</th>
               <th>Docente</th>
-              <th>Intensidad Horaria</th>
+              <th>Intensidad horaria</th>
+              <th>Día</th>
+              <th>Horario</th>
               <th>Acciones</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+
+            <tbody>
             <tr *ngFor="let item of items">
-              <td>{{ formatValue(item.id) }}</td>
-              <td><strong>{{ formatValue(item.nombre) }}</strong></td>
-              <td>{{ getSemestreNombre(item) }}</td>
               <td>
-                <span class="docente-badge" *ngIf="getDocenteNombre(item) !== '—'">
-                  {{ getDocenteNombre(item) }}
-                </span>
-                <span class="text-muted" *ngIf="getDocenteNombre(item) === '—'">Sin asignar</span>
+                <strong>{{ formatValue(item.nombre) }}</strong>
               </td>
-              <td>{{ item.intensidadHoraria != null ? item.intensidadHoraria + ' hrs' : '—' }}</td>
+
+              <td>
+                {{ getSemestreNombre(item) }}
+              </td>
+
+              <td>
+                  <span
+                    class="docente-badge"
+                    *ngIf="getDocenteNombre(item) !== '—'"
+                  >
+                    {{ getDocenteNombre(item) }}
+                  </span>
+
+                <span
+                  class="text-muted"
+                  *ngIf="getDocenteNombre(item) === '—'"
+                >
+                    Sin asignar
+                  </span>
+              </td>
+
+              <td>
+                {{
+                  item.intensidadHoraria != null
+                    ? item.intensidadHoraria + ' hrs'
+                    : '—'
+                }}
+              </td>
+
+              <td>
+                {{ formatDiaSemana(item.diaSemana) }}
+              </td>
+
+              <td>
+                {{ formatHorario(item) }}
+              </td>
+
               <td>
                 <div class="row-actions" *ngIf="canManage">
-                  <button type="button" class="btn-action btn-action--edit" (click)="openEditModal(item)">
+                  <button
+                    type="button"
+                    class="btn-action btn-action--edit"
+                    (click)="openEditModal(item)"
+                  >
                     Editar
                   </button>
-                  <button type="button" class="btn-action btn-action--delete" (click)="openDeleteConfirm(item)">
+
+                  <button
+                    type="button"
+                    class="btn-action btn-action--delete"
+                    (click)="openDeleteConfirm(item)"
+                  >
                     Eliminar
                   </button>
                 </div>
+
                 <span *ngIf="!canManage">—</span>
               </td>
             </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
 
         <footer class="pagination" *ngIf="totalElements > 0">
           <span>Total: {{ totalElements }} materias</span>
+
           <div class="pagination__controls">
-            <button type="button" (click)="onPageChange(page - 1)" [disabled]="page <= 0 || loading">
+            <button
+              type="button"
+              (click)="onPageChange(page - 1)"
+              [disabled]="page <= 0 || loading"
+            >
               Anterior
             </button>
-            <span>Página {{ page + 1 }} de {{ totalPages }}</span>
-            <button type="button" (click)="onPageChange(page + 1)" [disabled]="page + 1 >= totalPages || loading">
+
+            <span>
+              Página {{ page + 1 }} de {{ totalPages }}
+            </span>
+
+            <button
+              type="button"
+              (click)="onPageChange(page + 1)"
+              [disabled]="page + 1 >= totalPages || loading"
+            >
               Siguiente
             </button>
           </div>
         </footer>
       </div>
 
-      <!-- Modal de Creación / Edición -->
-      <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <!-- Modal de creación y edición -->
+      <div
+        class="modal-backdrop"
+        *ngIf="showModal"
+        (click)="closeModal()"
+      >
+        <div
+          class="modal-content"
+          (click)="$event.stopPropagation()"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="materia-modal-title"
+        >
           <header class="modal-header">
-            <h2>{{ isEditing ? 'Editar Materia' : 'Nueva Materia' }}</h2>
-            <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar modal">×</button>
+            <h2 id="materia-modal-title">
+              {{ isEditing ? 'Editar Materia' : 'Nueva Materia' }}
+            </h2>
+
+            <button
+              type="button"
+              class="btn-close"
+              (click)="closeModal()"
+              aria-label="Cerrar modal"
+            >
+              ×
+            </button>
           </header>
 
-          <form [formGroup]="materiaForm" (ngSubmit)="submitForm()">
+          <form
+            [formGroup]="materiaForm"
+            (ngSubmit)="submitForm()"
+            novalidate
+          >
+            <!-- Nombre -->
             <div class="form-group">
               <label for="nombre">Nombre de la materia *</label>
+
               <input
                 id="nombre"
                 type="text"
@@ -130,44 +245,148 @@ import { MateriaService } from '../service/materia.service';
                 placeholder="Ej. Algoritmos y Estructuras de Datos"
                 [class.invalid]="isInvalid('nombre')"
               />
-              <small class="field-error" *ngIf="isInvalid('nombre')">El nombre de la materia es obligatorio.</small>
+
+              <small
+                class="field-error"
+                *ngIf="isInvalid('nombre')"
+              >
+                El nombre de la materia es obligatorio.
+              </small>
             </div>
 
+            <!-- Semestre -->
             <div class="form-group">
               <label for="semestreId">Semestre *</label>
+
               <select
                 id="semestreId"
                 formControlName="semestreId"
                 [class.invalid]="isInvalid('semestreId')"
               >
                 <option [ngValue]="null" disabled>
-                  {{ loadingSemestres ? 'Cargando semestres...' : 'Selecciona un semestre' }}
+                  {{
+                    loadingSemestres
+                      ? 'Cargando semestres...'
+                      : 'Selecciona un semestre'
+                  }}
                 </option>
-                <option *ngFor="let semestre of semestres" [ngValue]="semestre.id">
+
+                <option
+                  *ngFor="let semestre of semestres"
+                  [ngValue]="semestre.id"
+                >
                   {{ formatSemestreOption(semestre) }}
                 </option>
               </select>
-              <small class="field-error" *ngIf="isInvalid('semestreId')">Debe seleccionar un semestre.</small>
+
+              <small
+                class="field-error"
+                *ngIf="isInvalid('semestreId')"
+              >
+                Debe seleccionar un semestre.
+              </small>
             </div>
 
+            <!-- Día de la semana -->
+            <div class="form-group">
+              <label for="diaSemana">Día de la semana *</label>
+
+              <select
+                id="diaSemana"
+                formControlName="diaSemana"
+                [class.invalid]="isInvalid('diaSemana')"
+              >
+                <option [ngValue]="null" disabled>
+                  Selecciona un día
+                </option>
+
+                <option
+                  *ngFor="let dia of diasSemana"
+                  [ngValue]="dia.value"
+                >
+                  {{ dia.label }}
+                </option>
+              </select>
+
+              <small
+                class="field-error"
+                *ngIf="isInvalid('diaSemana')"
+              >
+                Debe seleccionar un día de la semana.
+              </small>
+            </div>
+
+            <!-- Horas -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="horaInicio">Hora de inicio *</label>
+
+                <input
+                  id="horaInicio"
+                  type="time"
+                  formControlName="horaInicio"
+                  [class.invalid]="isInvalid('horaInicio')"
+                />
+
+                <small
+                  class="field-error"
+                  *ngIf="isInvalid('horaInicio')"
+                >
+                  Debe indicar una hora de inicio válida.
+                </small>
+              </div>
+
+              <div class="form-group">
+                <label for="horaFin">Hora de fin *</label>
+
+                <input
+                  id="horaFin"
+                  type="time"
+                  formControlName="horaFin"
+                  [class.invalid]="isInvalid('horaFin')"
+                />
+
+                <small
+                  class="field-error"
+                  *ngIf="isInvalid('horaFin')"
+                >
+                  Debe indicar una hora de fin válida.
+                </small>
+              </div>
+            </div>
+
+            <!-- Docente -->
             <div class="form-group">
               <label for="docenteId">Docente asignado (opcional)</label>
+
               <select
                 id="docenteId"
                 formControlName="docenteId"
                 [class.invalid]="isInvalid('docenteId')"
               >
                 <option [ngValue]="null">
-                  {{ loadingDocentes ? 'Cargando docentes...' : '— Sin docente asignado —' }}
+                  {{
+                    loadingDocentes
+                      ? 'Cargando docentes...'
+                      : '— Sin docente asignado —'
+                  }}
                 </option>
-                <option *ngFor="let docente of docentes" [ngValue]="docente.id">
+
+                <option
+                  *ngFor="let docente of docentes"
+                  [ngValue]="docente.id"
+                >
                   {{ formatDocenteOption(docente) }}
                 </option>
               </select>
             </div>
 
+            <!-- Intensidad horaria -->
             <div class="form-group">
-              <label for="intensidadHoraria">Intensidad horaria (horas)</label>
+              <label for="intensidadHoraria">
+                Intensidad horaria (horas)
+              </label>
+
               <input
                 id="intensidadHoraria"
                 type="number"
@@ -177,39 +396,96 @@ import { MateriaService } from '../service/materia.service';
                 placeholder="Ej. 64"
                 [class.invalid]="isInvalid('intensidadHoraria')"
               />
-              <small class="field-error" *ngIf="isInvalid('intensidadHoraria')">Debe ser un número mayor o igual a 1.</small>
+
+              <small
+                class="field-error"
+                *ngIf="isInvalid('intensidadHoraria')"
+              >
+                Debe ser un número mayor o igual a 1.
+              </small>
             </div>
 
             <footer class="modal-actions">
-              <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting">
+              <button
+                type="button"
+                class="btn-cancel"
+                (click)="closeModal()"
+                [disabled]="submitting"
+              >
                 Cancelar
               </button>
-              <button type="submit" class="btn-primary" [disabled]="submitting">
-                {{ submitting ? 'Guardando...' : (isEditing ? 'Actualizar materia' : 'Crear materia') }}
+
+              <button
+                type="submit"
+                class="btn-primary"
+                [disabled]="submitting"
+              >
+                {{
+                  submitting
+                    ? 'Guardando...'
+                    : isEditing
+                      ? 'Actualizar materia'
+                      : 'Crear materia'
+                }}
               </button>
             </footer>
           </form>
         </div>
       </div>
 
-      <!-- Modal de Confirmación de Eliminación -->
-      <div class="modal-backdrop" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
-        <div class="modal-content modal-content--sm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <!-- Modal de confirmación de eliminación -->
+      <div
+        class="modal-backdrop"
+        *ngIf="showDeleteModal"
+        (click)="closeDeleteModal()"
+      >
+        <div
+          class="modal-content modal-content--sm"
+          (click)="$event.stopPropagation()"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-modal-title"
+        >
           <header class="modal-header">
-            <h2>Eliminar Materia</h2>
-            <button type="button" class="btn-close" (click)="closeDeleteModal()" aria-label="Cerrar modal">×</button>
+            <h2 id="delete-modal-title">Eliminar Materia</h2>
+
+            <button
+              type="button"
+              class="btn-close"
+              (click)="closeDeleteModal()"
+              aria-label="Cerrar modal"
+            >
+              ×
+            </button>
           </header>
 
           <div class="modal-body-text">
-            <p>¿Estás seguro de que deseas eliminar la materia <strong>{{ deletingItem?.nombre }}</strong>?</p>
-            <p class="text-muted">Esta acción no se puede deshacer.</p>
+            <p>
+              ¿Estás seguro de que deseas eliminar la materia
+              <strong>{{ deletingItem?.nombre }}</strong>?
+            </p>
+
+            <p class="text-muted">
+              Esta acción no se puede deshacer.
+            </p>
           </div>
 
           <footer class="modal-actions">
-            <button type="button" class="btn-cancel" (click)="closeDeleteModal()" [disabled]="deleting">
+            <button
+              type="button"
+              class="btn-cancel"
+              (click)="closeDeleteModal()"
+              [disabled]="deleting"
+            >
               Cancelar
             </button>
-            <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+
+            <button
+              type="button"
+              class="btn-danger"
+              (click)="confirmDelete()"
+              [disabled]="deleting"
+            >
               {{ deleting ? 'Eliminando...' : 'Eliminar' }}
             </button>
           </footer>
@@ -335,8 +611,14 @@ import { MateriaService } from '../service/materia.service';
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+
     .table {
       width: 100%;
+      min-width: 950px;
       border-collapse: collapse;
       text-align: left;
       font-size: 0.9rem;
@@ -346,6 +628,7 @@ import { MateriaService } from '../service/materia.service';
     .table td {
       padding: 0.85rem 1rem;
       border-bottom: 1px solid #f1f5f9;
+      white-space: nowrap;
     }
 
     .table th {
@@ -429,6 +712,8 @@ import { MateriaService } from '../service/materia.service';
       border-top: 1px solid #e2e8f0;
       font-size: 0.85rem;
       color: #64748b;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .pagination__controls {
@@ -454,6 +739,7 @@ import { MateriaService } from '../service/materia.service';
       justify-content: center;
       padding: 1rem;
       z-index: 50;
+      overflow-y: auto;
     }
 
     .modal-content {
@@ -461,6 +747,8 @@ import { MateriaService } from '../service/materia.service';
       border-radius: 0.75rem;
       width: 100%;
       max-width: 30rem;
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
       padding: 1.5rem;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
     }
@@ -526,6 +814,14 @@ import { MateriaService } from '../service/materia.service';
       border-radius: 0.5rem;
       font-size: 0.9rem;
       background: #fff;
+      color: #0f172a;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .form-group input.invalid,
@@ -538,11 +834,39 @@ import { MateriaService } from '../service/materia.service';
       font-size: 0.75rem;
     }
 
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
     .modal-actions {
       display: flex;
       justify-content: flex-end;
       gap: 0.75rem;
       margin-top: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .materias-page {
+        padding: 0.75rem;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-content {
+        padding: 1rem;
+      }
+
+      .actions {
+        width: 100%;
+      }
+
+      .actions button {
+        flex: 1;
+      }
     }
   `]
 })
@@ -559,9 +883,20 @@ export class MateriaListPageComponent implements OnInit {
   readonly titulo = 'Materias';
   readonly descripcion = 'Consulta y gestión de asignaturas y materias.';
 
+  readonly diasSemana: { value: DiaSemana; label: string }[] = [
+    { value: 'LUNES', label: 'Lunes' },
+    { value: 'MARTES', label: 'Martes' },
+    { value: 'MIERCOLES', label: 'Miércoles' },
+    { value: 'JUEVES', label: 'Jueves' },
+    { value: 'VIERNES', label: 'Viernes' },
+    { value: 'SABADO', label: 'Sábado' },
+    { value: 'DOMINGO', label: 'Domingo' }
+  ];
+
   items: Materia[] = [];
   semestres: Semestre[] = [];
   docentes: Docente[] = [];
+
   loading = false;
   loadingSemestres = false;
   loadingDocentes = false;
@@ -582,19 +917,59 @@ export class MateriaListPageComponent implements OnInit {
   deletingItem: Materia | null = null;
 
   readonly materiaForm: FormGroup = this.fb.group({
-    nombre: ['', [Validators.required, Validators.pattern(/\S+/)]],
-    semestreId: [null, [Validators.required]],
-    docenteId: [null as number | null],
-    intensidadHoraria: [null as number | null, [Validators.min(1)]]
+    nombre: [
+      '',
+      [
+        Validators.required,
+        Validators.pattern(/\S+/)
+      ]
+    ],
+    semestreId: [
+      null,
+      [Validators.required]
+    ],
+    diaSemana: [
+      null,
+      [Validators.required]
+    ],
+    horaInicio: [
+      '',
+      [
+        Validators.required,
+        Validators.pattern(/^([01]\d|2[0-3]):[0-5]\d$/)
+      ]
+    ],
+    horaFin: [
+      '',
+      [
+        Validators.required,
+        Validators.pattern(/^([01]\d|2[0-3]):[0-5]\d$/)
+      ]
+    ],
+    docenteId: [
+      null as number | null
+    ],
+    intensidadHoraria: [
+      null as number | null,
+      [Validators.min(1)]
+    ]
   });
 
   get canManage(): boolean {
     const rol = this.authService.getRol();
-    return rol === Rol.ADMIN_INSTITUCION || rol === Rol.ADMIN_SEDE || rol === Rol.SUPER_ADMIN;
+
+    return (
+      rol === Rol.ADMIN_INSTITUCION ||
+      rol === Rol.ADMIN_SEDE ||
+      rol === Rol.SUPER_ADMIN
+    );
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalElements / this.size));
+    return Math.max(
+      1,
+      Math.ceil(this.totalElements / this.size)
+    );
   }
 
   ngOnInit(): void {
@@ -620,14 +995,22 @@ export class MateriaListPageComponent implements OnInit {
       .subscribe({
         next: (response) => {
           this.loading = false;
+
           const resData = response?.data;
+
           this.items = this.extractRecords(resData);
-          this.totalElements = this.extractTotal(resData, this.items.length);
+          this.totalElements = this.extractTotal(
+            resData,
+            this.items.length
+          );
+
           this.cdr.markForCheck();
         },
         error: (error) => {
           this.loading = false;
-          this.errorMessage = error?.message || 'Error al cargar las materias.';
+          this.errorMessage =
+            error?.message || 'Error al cargar las materias.';
+
           this.notificationService.error(this.errorMessage);
           this.cdr.markForCheck();
         }
@@ -639,19 +1022,30 @@ export class MateriaListPageComponent implements OnInit {
     this.cdr.markForCheck();
 
     this.semestreService
-      .listar({ page: 0, size: 200 })
+      .listar({
+        page: 0,
+        size: 200
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           this.loadingSemestres = false;
+
           const resData = response?.data;
+
           if (Array.isArray(resData)) {
             this.semestres = resData;
           } else if (resData) {
-            this.semestres = (resData.content || resData.items || (resData as { data?: Semestre[] }).data || []) as Semestre[];
+            this.semestres = (
+              resData.content ||
+              resData.items ||
+              (resData as { data?: Semestre[] }).data ||
+              []
+            ) as Semestre[];
           } else {
             this.semestres = [];
           }
+
           this.cdr.markForCheck();
         },
         error: () => {
@@ -666,19 +1060,30 @@ export class MateriaListPageComponent implements OnInit {
     this.cdr.markForCheck();
 
     this.docenteService
-      .listar({ page: 0, size: 200 })
+      .listar({
+        page: 0,
+        size: 200
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           this.loadingDocentes = false;
+
           const resData = response?.data;
+
           if (Array.isArray(resData)) {
             this.docentes = resData;
           } else if (resData) {
-            this.docentes = (resData.content || resData.items || (resData as { data?: Docente[] }).data || []) as Docente[];
+            this.docentes = (
+              resData.content ||
+              resData.items ||
+              (resData as { data?: Docente[] }).data ||
+              []
+            ) as Docente[];
           } else {
             this.docentes = [];
           }
+
           this.cdr.markForCheck();
         },
         error: () => {
@@ -690,13 +1095,18 @@ export class MateriaListPageComponent implements OnInit {
 
   onSearch(event: Event): void {
     const target = event.target as HTMLInputElement;
+
     this.query = target.value ?? '';
     this.page = 0;
+
     this.loadMaterias();
   }
 
   onPageChange(newPage: number): void {
-    if (newPage >= 0 && newPage < this.totalPages) {
+    if (
+      newPage >= 0 &&
+      newPage < this.totalPages
+    ) {
       this.page = newPage;
       this.loadMaterias();
     }
@@ -705,41 +1115,81 @@ export class MateriaListPageComponent implements OnInit {
   openCreateModal(): void {
     this.isEditing = false;
     this.editingId = null;
+
     this.materiaForm.reset({
       nombre: '',
       semestreId: null,
+      diaSemana: null,
+      horaInicio: '',
+      horaFin: '',
       docenteId: null,
       intensidadHoraria: null
     });
+
     if (this.semestres.length === 0) {
       this.loadSemestres();
     }
+
     if (this.docentes.length === 0) {
       this.loadDocentes();
     }
+
     this.showModal = true;
     this.cdr.markForCheck();
   }
 
   openEditModal(item: Materia): void {
     this.isEditing = true;
-    this.editingId = item.id != null ? Number(item.id) : null;
-    const semestreIdVal = item.semestreId ?? (typeof item.semestre === 'object' && item.semestre ? item.semestre.id : null) ?? null;
-    const docenteIdVal = item.docenteId ?? (typeof item.docente === 'object' && item.docente ? item.docente.id : null) ?? null;
+    this.editingId =
+      item.id != null ? Number(item.id) : null;
+
+    const semestreIdVal =
+      item.semestreId ??
+      (
+        typeof item.semestre === 'object' &&
+        item.semestre
+          ? item.semestre.id
+          : null
+      ) ??
+      null;
+
+    const docenteIdVal =
+      item.docenteId ??
+      (
+        typeof item.docente === 'object' &&
+        item.docente
+          ? item.docente.id
+          : null
+      ) ??
+      null;
 
     this.materiaForm.reset({
       nombre: item.nombre || '',
-      semestreId: semestreIdVal != null ? Number(semestreIdVal) : null,
-      docenteId: docenteIdVal != null ? Number(docenteIdVal) : null,
-      intensidadHoraria: item.intensidadHoraria != null ? item.intensidadHoraria : null
+      semestreId:
+        semestreIdVal != null
+          ? Number(semestreIdVal)
+          : null,
+      diaSemana: item.diaSemana ?? null,
+      horaInicio: this.formatHoraInput(item.horaInicio),
+      horaFin: this.formatHoraInput(item.horaFin),
+      docenteId:
+        docenteIdVal != null
+          ? Number(docenteIdVal)
+          : null,
+      intensidadHoraria:
+        item.intensidadHoraria != null
+          ? item.intensidadHoraria
+          : null
     });
 
     if (this.semestres.length === 0) {
       this.loadSemestres();
     }
+
     if (this.docentes.length === 0) {
       this.loadDocentes();
     }
+
     this.showModal = true;
     this.cdr.markForCheck();
   }
@@ -749,6 +1199,7 @@ export class MateriaListPageComponent implements OnInit {
     this.isEditing = false;
     this.editingId = null;
     this.materiaForm.reset();
+
     this.cdr.markForCheck();
   }
 
@@ -765,7 +1216,10 @@ export class MateriaListPageComponent implements OnInit {
   }
 
   confirmDelete(): void {
-    if (!this.deletingItem || this.deletingItem.id == null) {
+    if (
+      !this.deletingItem ||
+      this.deletingItem.id == null
+    ) {
       return;
     }
 
@@ -778,13 +1232,22 @@ export class MateriaListPageComponent implements OnInit {
       .subscribe({
         next: () => {
           this.deleting = false;
-          this.notificationService.success('Materia eliminada exitosamente.');
+
+          this.notificationService.success(
+            'Materia eliminada exitosamente.'
+          );
+
           this.closeDeleteModal();
           this.loadMaterias();
         },
         error: (error) => {
           this.deleting = false;
-          this.notificationService.error(error?.message || 'Error al eliminar la materia.');
+
+          this.notificationService.error(
+            error?.message ||
+            'Error al eliminar la materia.'
+          );
+
           this.cdr.markForCheck();
         }
       });
@@ -792,35 +1255,81 @@ export class MateriaListPageComponent implements OnInit {
 
   isInvalid(controlName: string): boolean {
     const control = this.materiaForm.get(controlName);
-    return !!(control && control.invalid && (control.dirty || control.touched));
+
+    return !!(
+      control &&
+      control.invalid &&
+      (control.dirty || control.touched)
+    );
   }
 
   submitForm(): void {
     if (this.materiaForm.invalid) {
       this.materiaForm.markAllAsTouched();
-      this.notificationService.error('Por favor complete los campos requeridos correctamente.');
+
+      this.notificationService.error(
+        'Por favor complete los campos requeridos correctamente.'
+      );
+
       return;
     }
 
-    this.submitting = true;
-    this.cdr.markForCheck();
     const formValue = this.materiaForm.getRawValue();
 
+    const horaInicio = String(
+      formValue.horaInicio ?? ''
+    );
+
+    const horaFin = String(
+      formValue.horaFin ?? ''
+    );
+
+    if (!this.isHoraFinPosterior(horaInicio, horaFin)) {
+      this.notificationService.error(
+        'La hora de fin debe ser posterior a la hora de inicio.'
+      );
+
+      this.materiaForm.get('horaFin')?.markAsTouched();
+      return;
+    }
+
     const payload: MateriaRequest = {
-      nombre: String(formValue.nombre ?? '').trim(),
+      nombre: String(
+        formValue.nombre ?? ''
+      ).trim(),
+
       semestreId: Number(formValue.semestreId),
-      docenteId: formValue.docenteId !== null && formValue.docenteId !== '' && formValue.docenteId !== undefined
-        ? Number(formValue.docenteId)
-        : null,
-      intensidadHoraria: formValue.intensidadHoraria !== null && formValue.intensidadHoraria !== ''
-        ? Number(formValue.intensidadHoraria)
-        : null,
+
+      diaSemana: formValue.diaSemana as DiaSemana,
+
+      horaInicio,
+      horaFin,
+
+      docenteId:
+        formValue.docenteId !== null &&
+        formValue.docenteId !== '' &&
+        formValue.docenteId !== undefined
+          ? Number(formValue.docenteId)
+          : null,
+
+      intensidadHoraria:
+        formValue.intensidadHoraria !== null &&
+        formValue.intensidadHoraria !== ''
+          ? Number(formValue.intensidadHoraria)
+          : null,
+
       institucionId: this.authService.getInstitucionId(),
       sedeId: this.authService.getSedeId()
     };
 
+    this.submitting = true;
+    this.cdr.markForCheck();
+
     const action$ = this.isEditing && this.editingId != null
-      ? this.materiaService.actualizar(this.editingId, payload)
+      ? this.materiaService.actualizar(
+        this.editingId,
+        payload as MateriaUpdateRequest
+      )
       : this.materiaService.crear(payload);
 
     action$
@@ -828,105 +1337,249 @@ export class MateriaListPageComponent implements OnInit {
       .subscribe({
         next: () => {
           this.submitting = false;
+
           this.notificationService.success(
-            this.isEditing ? 'Materia actualizada exitosamente.' : 'Materia creada exitosamente.'
+            this.isEditing
+              ? 'Materia actualizada exitosamente.'
+              : 'Materia creada exitosamente.'
           );
+
           this.closeModal();
           this.loadMaterias();
         },
         error: (error) => {
           this.submitting = false;
+
           this.notificationService.error(
-            error?.message || (this.isEditing ? 'Error al actualizar la materia.' : 'Error al crear la materia.')
+            error?.message ||
+            (
+              this.isEditing
+                ? 'Error al actualizar la materia.'
+                : 'Error al crear la materia.'
+            )
           );
+
           this.cdr.markForCheck();
         }
       });
   }
 
   getDocenteNombre(item: Materia): string {
-    if (item.docenteNombre && item.docenteNombre.trim().length > 0) {
+    if (
+      item.docenteNombre &&
+      item.docenteNombre.trim().length > 0
+    ) {
       return item.docenteNombre;
     }
-    if (item.docente && typeof item.docente === 'object') {
+
+    if (
+      item.docente &&
+      typeof item.docente === 'object'
+    ) {
       const nombres = item.docente.nombres || '';
       const apellidos = item.docente.apellidos || '';
-      const nombreCompleto = `${nombres} ${apellidos}`.trim();
+
+      const nombreCompleto =
+        `${nombres} ${apellidos}`.trim();
+
       if (nombreCompleto.length > 0) {
         return nombreCompleto;
       }
     }
+
     if (item.docenteId != null) {
-      const doc = this.docentes.find((d) => d.id === item.docenteId);
+      const doc = this.docentes.find(
+        (d) => d.id === item.docenteId
+      );
+
       if (doc) {
-        const nombreCompleto = `${doc.nombres || ''} ${doc.apellidos || ''}`.trim();
+        const nombreCompleto =
+          `${doc.nombres || ''} ${doc.apellidos || ''}`.trim();
+
         if (nombreCompleto.length > 0) {
           return nombreCompleto;
         }
       }
+
       return `Docente #${item.docenteId}`;
     }
+
     return '—';
   }
 
   formatDocenteOption(docente: Docente): string {
-    const nombreCompleto = `${docente.nombres || ''} ${docente.apellidos || ''}`.trim();
-    const docIdentidad = docente.documento ? ` - Doc: ${docente.documento}` : '';
-    return nombreCompleto ? `${nombreCompleto}${docIdentidad}` : `Docente #${docente.id}`;
+    const nombreCompleto =
+      `${docente.nombres || ''} ${docente.apellidos || ''}`.trim();
+
+    const docIdentidad = docente.documento
+      ? ` - Doc: ${docente.documento}`
+      : '';
+
+    return nombreCompleto
+      ? `${nombreCompleto}${docIdentidad}`
+      : `Docente #${docente.id}`;
   }
 
   getSemestreNombre(item: Materia): string {
-    if (item.semestreNombre && item.semestreNombre.trim().length > 0) {
+    if (
+      item.semestreNombre &&
+      item.semestreNombre.trim().length > 0
+    ) {
       return item.semestreNombre;
     }
-    if (item.semestre && typeof item.semestre === 'object' && 'nombre' in item.semestre && item.semestre.nombre) {
+
+    if (
+      item.semestre &&
+      typeof item.semestre === 'object' &&
+      'nombre' in item.semestre &&
+      item.semestre.nombre
+    ) {
       return item.semestre.nombre;
     }
+
     if (item.semestreId != null) {
-      const sem = this.semestres.find((s) => s.id === item.semestreId);
+      const sem = this.semestres.find(
+        (s) => s.id === item.semestreId
+      );
+
       if (sem?.nombre) {
         return sem.nombre;
       }
+
       return `Semestre #${item.semestreId}`;
     }
+
     return '—';
   }
 
   formatSemestreOption(semestre: Semestre): string {
-    const nombre = semestre.nombre || `Semestre #${semestre.id}`;
-    const programa = semestre.programaNombre || (semestre.programa as { nombre?: string } | undefined)?.nombre;
-    return programa ? `${nombre} (${programa})` : nombre;
+    const nombre =
+      semestre.nombre || `Semestre #${semestre.id}`;
+
+    const programa =
+      semestre.programaNombre ||
+      (
+        semestre.programa as
+          { nombre?: string } | undefined
+      )?.nombre;
+
+    return programa
+      ? `${nombre} (${programa})`
+      : nombre;
+  }
+
+  formatDiaSemana(
+    dia: DiaSemana | null | undefined
+  ): string {
+    const labels: Record<DiaSemana, string> = {
+      LUNES: 'Lunes',
+      MARTES: 'Martes',
+      MIERCOLES: 'Miércoles',
+      JUEVES: 'Jueves',
+      VIERNES: 'Viernes',
+      SABADO: 'Sábado',
+      DOMINGO: 'Domingo'
+    };
+
+    return dia ? labels[dia] || dia : '—';
+  }
+
+  formatHorario(item: Materia): string {
+    if (!item.horaInicio || !item.horaFin) {
+      return '—';
+    }
+
+    return `${this.formatHoraInput(item.horaInicio)} - ${this.formatHoraInput(item.horaFin)}`;
+  }
+
+  private formatHoraInput(
+    value: string | null | undefined
+  ): string {
+    if (!value) {
+      return '';
+    }
+
+    return value.substring(0, 5);
+  }
+
+  private isHoraFinPosterior(
+    horaInicio: string,
+    horaFin: string
+  ): boolean {
+    const inicio = this.horaEnMinutos(horaInicio);
+    const fin = this.horaEnMinutos(horaFin);
+
+    return fin > inicio;
+  }
+
+  private horaEnMinutos(hora: string): number {
+    const [horas, minutos] = hora
+      .split(':')
+      .map(Number);
+
+    return (horas * 60) + minutos;
   }
 
   formatValue(value: unknown): string {
-    if (value === null || value === undefined || value === '') {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ''
+    ) {
       return '—';
     }
+
     return String(value);
   }
 
-  private extractRecords(data: PaginacionRespuesta<Materia> | Materia[] | null | undefined): Materia[] {
+  private extractRecords(
+    data:
+      | PaginacionRespuesta<Materia>
+      | Materia[]
+      | null
+      | undefined
+  ): Materia[] {
     if (Array.isArray(data)) {
       return data;
     }
+
     const payload = data as {
       content?: Materia[];
       items?: Materia[];
       data?: Materia[];
     } | null | undefined;
-    return (payload?.content ?? payload?.items ?? payload?.data ?? []) as Materia[];
+
+    return (
+      payload?.content ??
+      payload?.items ??
+      payload?.data ??
+      []
+    ) as Materia[];
   }
 
-  private extractTotal(data: PaginacionRespuesta<Materia> | Materia[] | null | undefined, fallback: number): number {
+  private extractTotal(
+    data:
+      | PaginacionRespuesta<Materia>
+      | Materia[]
+      | null
+      | undefined,
+    fallback: number
+  ): number {
     if (Array.isArray(data)) {
       return data.length;
     }
+
     const payload = data as {
       totalElements?: number;
       total?: number;
       totalCount?: number;
     } | null | undefined;
-    return payload?.totalElements ?? payload?.total ?? payload?.totalCount ?? fallback;
+
+    return (
+      payload?.totalElements ??
+      payload?.total ??
+      payload?.totalCount ??
+      fallback
+    );
   }
 }
-

@@ -1,28 +1,54 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, Input, OnInit, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  Input,
+  OnInit,
+  inject
+} from '@angular/core';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { Observable } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
 import { LoadingComponent } from '../loading/loading.component';
 import { PaginationComponent } from '../pagination/pagination.component';
 import { SearchInputComponent } from '../search-input/search-input.component';
+
 import { NotificationService } from '../../shared/services/notification.service';
 import { ApiResponse } from '../../shared/interface/api-response.interface';
-import { PaginacionRequest, PaginacionRespuesta } from '../../shared/interface/pagination.interface';
+import {
+  PaginacionRequest,
+  PaginacionRespuesta
+} from '../../shared/interface/pagination.interface';
 
 export interface FormField {
   key: string;
   label: string;
   type: 'text' | 'number' | 'email' | 'select' | 'multiselect';
   required?: boolean;
-  options?: { value: unknown; label: string }[];
+  options?: {
+    value: unknown;
+    label: string;
+  }[];
 }
 
 @Component({
   selector: 'app-resource-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SearchInputComponent, LoadingComponent, EmptyStateComponent, PaginationComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    SearchInputComponent,
+    LoadingComponent,
+    EmptyStateComponent,
+    PaginationComponent
+  ],
   template: `
     <section class="resource-card">
       <header class="resource-card__header">
@@ -30,17 +56,40 @@ export interface FormField {
           <h1>{{ title }}</h1>
           <p>{{ description }}</p>
         </div>
+
         <div class="header-actions">
-          <button type="button" class="btn-new" *ngIf="createFn && createFields.length" (click)="openModal()">+ Nuevo</button>
-          <button type="button" class="refresh" (click)="reload()">Actualizar</button>
+          <button
+            type="button"
+            class="btn-new"
+            *ngIf="createFn && createFields.length"
+            (click)="openModal()"
+          >
+            + Nuevo
+          </button>
+
+          <button
+            type="button"
+            class="refresh"
+            (click)="reload()"
+          >
+            Actualizar
+          </button>
         </div>
       </header>
 
-      <app-search-input [placeholder]="searchPlaceholder" (searchChange)="search($event)"></app-search-input>
+      <app-search-input
+        [placeholder]="searchPlaceholder"
+        (searchChange)="search($event)"
+      ></app-search-input>
 
       <app-loading *ngIf="loading"></app-loading>
 
-      <p class="error" *ngIf="!loading && error">{{ error }}</p>
+      <p
+        class="error"
+        *ngIf="!loading && error"
+      >
+        {{ error }}
+      </p>
 
       <app-empty-state
         *ngIf="!loading && !error && items.length === 0"
@@ -48,17 +97,25 @@ export interface FormField {
         [message]="emptyMessage"
       ></app-empty-state>
 
-      <div class="table-wrapper" *ngIf="!loading && !error && items.length > 0">
+      <div
+        class="table-wrapper"
+        *ngIf="!loading && !error && items.length > 0"
+      >
         <table>
           <thead>
-            <tr>
-              <th *ngFor="let column of columns">{{ column }}</th>
-            </tr>
+          <tr>
+            <th *ngFor="let column of columns">
+              {{ formatColumnName(column) }}
+            </th>
+          </tr>
           </thead>
+
           <tbody>
-            <tr *ngFor="let item of items">
-              <td *ngFor="let column of columns">{{ formatValue(item[column]) }}</td>
-            </tr>
+          <tr *ngFor="let item of items">
+            <td *ngFor="let column of columns">
+              {{ formatValue(item[column]) }}
+            </td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -73,39 +130,111 @@ export interface FormField {
     </section>
 
     <!-- Modal de creación -->
-    <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
+    <div
+      class="modal-backdrop"
+      *ngIf="showModal"
+      (click)="closeModal()"
+    >
+      <div
+        class="modal"
+        (click)="$event.stopPropagation()"
+      >
         <header class="modal__header">
           <h2>Nuevo {{ title | slice:0:-1 }}</h2>
-          <button type="button" class="modal__close" (click)="closeModal()">✕</button>
+
+          <button
+            type="button"
+            class="modal__close"
+            (click)="closeModal()"
+          >
+            ✕
+          </button>
         </header>
-        <form [formGroup]="createForm" (ngSubmit)="submitCreate()" class="modal__body">
-          <div class="field" *ngFor="let field of createFields">
+
+        <form
+          [formGroup]="createForm"
+          (ngSubmit)="submitCreate()"
+          class="modal__body"
+        >
+          <div
+            class="field"
+            *ngFor="let field of createFields"
+          >
             <label>
               {{ field.label }}
-              <span class="required" *ngIf="field.required">*</span>
+              <span
+                class="required"
+                *ngIf="field.required"
+              >
+                *
+              </span>
             </label>
-            <select *ngIf="field.type === 'select'" [formControlName]="field.key">
+
+            <!-- Select simple -->
+            <select
+              *ngIf="field.type === 'select'"
+              [formControlName]="field.key"
+            >
               <option value="">Seleccionar...</option>
-              <option *ngFor="let opt of field.options" [ngValue]="opt.value">{{ opt.label }}</option>
+
+              <option
+                *ngFor="let opt of field.options"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
             </select>
-            <select *ngIf="field.type === 'multiselect'" [formControlName]="field.key" multiple>
-              <option *ngFor="let opt of field.options" [ngValue]="opt.value">{{ opt.label }}</option>
+
+            <!-- Multiselect -->
+            <select
+              *ngIf="field.type === 'multiselect'"
+              [formControlName]="field.key"
+              multiple
+            >
+              <option
+                *ngFor="let opt of field.options"
+                [ngValue]="opt.value"
+              >
+                {{ opt.label }}
+              </option>
             </select>
+
+            <!-- Inputs de texto, número y correo -->
             <input
-              *ngIf="field.type !== 'select' && field.type !== 'multiselect'"
+              *ngIf="
+                field.type !== 'select' &&
+                field.type !== 'multiselect'
+              "
               [type]="field.type"
               [formControlName]="field.key"
               [placeholder]="field.label"
             />
-            <small class="field-error"
-              *ngIf="createForm.get(field.key)?.invalid && createForm.get(field.key)?.touched">
+
+            <small
+              class="field-error"
+              *ngIf="
+                createForm.get(field.key)?.invalid &&
+                createForm.get(field.key)?.touched
+              "
+            >
               Este campo es obligatorio.
             </small>
           </div>
+
           <footer class="modal__footer">
-            <button type="button" class="btn-cancel" (click)="closeModal()">Cancelar</button>
-            <button type="submit" class="btn-submit" [disabled]="saving || createForm.invalid">
+            <button
+              type="button"
+              class="btn-cancel"
+              (click)="closeModal()"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              class="btn-submit"
+              [disabled]="saving || createForm.invalid"
+            >
               {{ saving ? 'Guardando...' : 'Guardar' }}
             </button>
           </footer>
@@ -149,6 +278,7 @@ export interface FormField {
       background: #fff;
       color: #334155;
       font-weight: 700;
+      cursor: pointer;
     }
 
     .header-actions {
@@ -170,7 +300,7 @@ export interface FormField {
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,0.45);
+      background: rgba(15, 23, 42, 0.45);
       display: grid;
       place-items: center;
       z-index: 1000;
@@ -180,8 +310,10 @@ export interface FormField {
       background: #fff;
       border-radius: 1.25rem;
       width: min(100%, 32rem);
+      max-height: 90vh;
+      overflow-y: auto;
       padding: 1.5rem;
-      box-shadow: 0 20px 40px rgba(15,23,42,0.15);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
     }
 
     .modal__header {
@@ -191,7 +323,10 @@ export interface FormField {
       margin-bottom: 1.25rem;
     }
 
-    .modal__header h2 { margin: 0; font-size: 1.3rem; }
+    .modal__header h2 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
 
     .modal__close {
       background: none;
@@ -217,9 +352,13 @@ export interface FormField {
       font-size: 0.9rem;
     }
 
-    .required { color: #b91c1c; margin-left: 2px; }
+    .required {
+      color: #b91c1c;
+      margin-left: 2px;
+    }
 
-    .field input, .field select {
+    .field input,
+    .field select {
       padding: 0.75rem 1rem;
       border-radius: 0.75rem;
       border: 1px solid #cbd5e1;
@@ -233,7 +372,10 @@ export interface FormField {
       min-height: 8rem;
     }
 
-    .field-error { color: #b91c1c; font-size: 0.8rem; }
+    .field-error {
+      color: #b91c1c;
+      font-size: 0.8rem;
+    }
 
     .modal__footer {
       display: flex;
@@ -262,7 +404,10 @@ export interface FormField {
       cursor: pointer;
     }
 
-    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-submit:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
 
     .table-wrapper {
       overflow-x: auto;
@@ -303,9 +448,19 @@ export class ResourceListComponent implements OnInit {
   @Input() description = '';
   @Input() searchPlaceholder = 'Buscar...';
   @Input() emptyTitle = 'No hay registros disponibles.';
-  @Input() emptyMessage = 'No se encontraron resultados para los filtros actuales.';
-  @Input({ required: true }) loadFn!: (filtros: PaginacionRequest) => Observable<ApiResponse<unknown>>;
-  @Input() createFn?: (payload: Record<string, unknown>) => Observable<ApiResponse<unknown>>;
+  @Input() emptyMessage =
+    'No se encontraron resultados para los filtros actuales.';
+
+  @Input({ required: true })
+  loadFn!: (
+    filtros: PaginacionRequest
+  ) => Observable<ApiResponse<unknown>>;
+
+  @Input()
+  createFn?: (
+    payload: Record<string, unknown>
+  ) => Observable<ApiResponse<unknown>>;
+
   @Input() createFields: FormField[] = [];
 
   private readonly notificationService = inject(NotificationService);
@@ -317,12 +472,15 @@ export class ResourceListComponent implements OnInit {
   saving = false;
   showModal = false;
   error: string | null = null;
+
   page = 0;
   size = 10;
   total = 0;
   query = '';
+
   items: Array<Record<string, unknown>> = [];
   columns: string[] = [];
+
   createForm = this.fb.group({});
 
   ngOnInit(): void {
@@ -330,11 +488,21 @@ export class ResourceListComponent implements OnInit {
   }
 
   openModal(): void {
-    const controls: Record<string, ReturnType<typeof this.fb.control>> = {};
+    const controls: Record<
+      string,
+      ReturnType<typeof this.fb.control>
+    > = {};
+
     for (const field of this.createFields) {
-      const initialValue = field.type === 'multiselect' ? [] : '';
-      controls[field.key] = this.fb.control(initialValue, field.required ? Validators.required : []);
+      const initialValue =
+        field.type === 'multiselect' ? [] : '';
+
+      controls[field.key] = this.fb.control(
+        initialValue,
+        field.required ? Validators.required : []
+      );
     }
+
     this.createForm = this.fb.group(controls);
     this.showModal = true;
   }
@@ -344,23 +512,40 @@ export class ResourceListComponent implements OnInit {
   }
 
   submitCreate(): void {
-    if (this.createForm.invalid || !this.createFn) return;
+    if (this.createForm.invalid || !this.createFn) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+
     this.saving = true;
-    const payload = this.createForm.getRawValue() as Record<string, unknown>;
-    this.createFn(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.notificationService.success('Registro creado correctamente.');
-        this.showModal = false;
-        this.reload();
-        this.saving = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.notificationService.error('No fue posible crear el registro.');
-        this.saving = false;
-        this.cdr.markForCheck();
-      }
-    });
+
+    const payload = this.createForm.getRawValue() as Record<
+      string,
+      unknown
+    >;
+
+    this.createFn(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notificationService.success(
+            'Registro creado correctamente.'
+          );
+
+          this.showModal = false;
+          this.reload();
+          this.saving = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.notificationService.error(
+            'No fue posible crear el registro.'
+          );
+
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   search(query: string): void {
@@ -378,28 +563,82 @@ export class ResourceListComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.loadFn({ q: this.query, page: this.page, size: this.size }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response) => {
-        const data = response.data as PaginacionRespuesta<Record<string, unknown>> | Record<string, unknown>[] | null | undefined;
-        const records = this.extractRecords(data);
-        this.items = records;
-        this.columns = records[0] ? Object.keys(records[0]) : [];
-        this.total = this.extractTotal(data, records.length);
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.error = 'No fue posible cargar la información.';
-        this.notificationService.error(this.error);
-        this.loading = false;
-        this.cdr.markForCheck();
-      }
-    });
+    this.loadFn({
+      q: this.query,
+      page: this.page,
+      size: this.size
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const data = response.data as
+            | PaginacionRespuesta<Record<string, unknown>>
+            | Record<string, unknown>[]
+            | null
+            | undefined;
+
+          const records = this.extractRecords(data);
+
+          this.items = records;
+
+          /*
+           * Se excluyen los campos que no deben mostrarse
+           * en la tabla. El id permanece dentro de items,
+           * pero no se genera una columna para él.
+           */
+          this.columns = records[0]
+            ? Object.keys(records[0]).filter(
+              (column) => column !== 'id'
+            )
+            : [];
+
+          this.total = this.extractTotal(
+            data,
+            records.length
+          );
+
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.error =
+            'No fue posible cargar la información.';
+
+          this.notificationService.error(this.error);
+
+          this.loading = false;
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  formatColumnName(column: string): string {
+    const columnLabels: Record<string, string> = {
+      nombres: 'Nombres',
+      apellidos: 'Apellidos',
+      documento: 'Documento',
+      correo: 'Correo',
+      telefono: 'Teléfono',
+      institucionId: 'Institución',
+      sedeId: 'Sede',
+      semestreId: 'Semestre',
+      materiaIds: 'Materias'
+    };
+
+    return columnLabels[column] ?? column;
   }
 
   formatValue(value: unknown): string {
-    if (value === null || value === undefined || value === '') {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ''
+    ) {
       return '—';
+    }
+
+    if (Array.isArray(value)) {
+      return value.join(', ');
     }
 
     if (typeof value === 'object') {
@@ -409,20 +648,41 @@ export class ResourceListComponent implements OnInit {
     return String(value);
   }
 
-  private extractRecords(data: PaginacionRespuesta<Record<string, unknown>> | Record<string, unknown>[] | null | undefined): Array<Record<string, unknown>> {
+  private extractRecords(
+    data:
+      | PaginacionRespuesta<Record<string, unknown>>
+      | Record<string, unknown>[]
+      | null
+      | undefined
+  ): Array<Record<string, unknown>> {
     if (Array.isArray(data)) {
       return data;
     }
 
-    return (data?.content ?? data?.items ?? data?.data ?? []) as Array<Record<string, unknown>>;
+    return (
+      data?.content ??
+      data?.items ??
+      data?.data ??
+      []
+    ) as Array<Record<string, unknown>>;
   }
 
-  private extractTotal(data: PaginacionRespuesta<Record<string, unknown>> | Record<string, unknown>[] | null | undefined, fallback: number): number {
+  private extractTotal(
+    data:
+      | PaginacionRespuesta<Record<string, unknown>>
+      | Record<string, unknown>[]
+      | null
+      | undefined,
+    fallback: number
+  ): number {
     if (Array.isArray(data)) {
       return data.length;
     }
 
-    return data?.totalElements ?? data?.total ?? fallback;
+    return (
+      data?.totalElements ??
+      data?.total ??
+      fallback
+    );
   }
 }
-
