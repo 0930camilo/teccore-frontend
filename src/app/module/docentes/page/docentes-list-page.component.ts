@@ -56,28 +56,37 @@ import { DocenteService } from '../service/docente.service';
           No hay docentes registrados.
         </div>
 
-        <table *ngIf="!loading && items.length > 0" class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombres</th>
-              <th>Apellidos</th>
-              <th>Documento</th>
-              <th>Correo</th>
-              <th>Carga Horaria (Semanal)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of items">
-              <td>{{ formatValue(item.id) }}</td>
-              <td>{{ formatValue(item.nombres) }}</td>
-              <td>{{ formatValue(item.apellidos) }}</td>
-              <td>{{ formatValue(item.documento) }}</td>
-              <td>{{ formatValue(item.correo) }}</td>
-              <td>{{ item.cargaHorariaSemanal != null ? item.cargaHorariaSemanal + ' hrs' : '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
+         <table *ngIf="!loading && items.length > 0" class="table">
+           <thead>
+             <tr>
+               <th>ID</th>
+               <th>Nombres</th>
+               <th>Apellidos</th>
+               <th>Documento</th>
+               <th>Correo</th>
+               <th>Carga Horaria (Semanal)</th>
+               <th *ngIf="canManage" class="th-actions">Acciones</th>
+             </tr>
+           </thead>
+           <tbody>
+             <tr *ngFor="let item of items">
+               <td>{{ formatValue(item.id) }}</td>
+               <td>{{ formatValue(item.nombres) }}</td>
+               <td>{{ formatValue(item.apellidos) }}</td>
+               <td>{{ formatValue(item.documento) }}</td>
+               <td>{{ formatValue(item.correo) }}</td>
+               <td>{{ item.cargaHorariaSemanal != null ? item.cargaHorariaSemanal + ' hrs' : '—' }}</td>
+               <td *ngIf="canManage" class="td-actions">
+                 <button type="button" class="btn-action btn-edit" (click)="openEditModal(item)" [disabled]="submitting">
+                   ✏️ Editar
+                 </button>
+                 <button type="button" class="btn-action btn-delete" (click)="deleteDocente(item.id!)" [disabled]="submitting">
+                   🗑️ Eliminar
+                 </button>
+               </td>
+             </tr>
+           </tbody>
+         </table>
 
         <footer class="pagination" *ngIf="totalElements > 0">
           <span>Total: {{ totalElements }} docentes</span>
@@ -93,88 +102,88 @@ import { DocenteService } from '../service/docente.service';
         </footer>
       </div>
 
-      <!-- Modal de Creación -->
-      <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
-        <div class="modal-content" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-          <header class="modal-header">
-            <h2>Nuevo Docente</h2>
-            <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar modal">×</button>
-          </header>
+       <!-- Modal de Creación/Edición -->
+       <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+         <div class="modal-content" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+           <header class="modal-header">
+             <h2>{{ docenteEnEdicion ? 'Editar Docente' : 'Nuevo Docente' }}</h2>
+             <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar modal">×</button>
+           </header>
 
-          <form [formGroup]="docenteForm" (ngSubmit)="submitForm()">
-            <div class="form-group">
-              <label for="nombres">Nombres *</label>
-              <input
-                id="nombres"
-                type="text"
-                formControlName="nombres"
-                placeholder="Ej. Juan Carlos"
-                [class.invalid]="isInvalid('nombres')"
-              />
-              <small class="field-error" *ngIf="isInvalid('nombres')">Los nombres son obligatorios.</small>
-            </div>
+           <form [formGroup]="docenteForm" (ngSubmit)="submitForm()">
+             <div class="form-group">
+               <label for="nombres">Nombres *</label>
+               <input
+                 id="nombres"
+                 type="text"
+                 formControlName="nombres"
+                 placeholder="Ej. Juan Carlos"
+                 [class.invalid]="isInvalid('nombres')"
+               />
+               <small class="field-error" *ngIf="isInvalid('nombres')">Los nombres son obligatorios.</small>
+             </div>
 
-            <div class="form-group">
-              <label for="apellidos">Apellidos *</label>
-              <input
-                id="apellidos"
-                type="text"
-                formControlName="apellidos"
-                placeholder="Ej. Pérez Gómez"
-                [class.invalid]="isInvalid('apellidos')"
-              />
-              <small class="field-error" *ngIf="isInvalid('apellidos')">Los apellidos son obligatorios.</small>
-            </div>
+             <div class="form-group">
+               <label for="apellidos">Apellidos *</label>
+               <input
+                 id="apellidos"
+                 type="text"
+                 formControlName="apellidos"
+                 placeholder="Ej. Pérez Gómez"
+                 [class.invalid]="isInvalid('apellidos')"
+               />
+               <small class="field-error" *ngIf="isInvalid('apellidos')">Los apellidos son obligatorios.</small>
+             </div>
 
-            <div class="form-group">
-              <label for="documento">Documento de identidad *</label>
-              <input
-                id="documento"
-                type="text"
-                formControlName="documento"
-                placeholder="Ej. 1020304050"
-                [class.invalid]="isInvalid('documento')"
-              />
-              <small class="field-error" *ngIf="isInvalid('documento')">El documento es obligatorio.</small>
-            </div>
+             <div class="form-group">
+               <label for="documento">Documento de identidad *</label>
+               <input
+                 id="documento"
+                 type="text"
+                 formControlName="documento"
+                 placeholder="Ej. 1020304050"
+                 [class.invalid]="isInvalid('documento')"
+               />
+               <small class="field-error" *ngIf="isInvalid('documento')">El documento es obligatorio.</small>
+             </div>
 
-            <div class="form-group">
-              <label for="correo">Correo electrónico</label>
-              <input
-                id="correo"
-                type="email"
-                formControlName="correo"
-                placeholder="Ej. docente@institucion.edu.co"
-                [class.invalid]="isInvalid('correo')"
-              />
-              <small class="field-error" *ngIf="isInvalid('correo')">Ingrese un correo electrónico válido.</small>
-            </div>
+             <div class="form-group">
+               <label for="correo">Correo electrónico</label>
+               <input
+                 id="correo"
+                 type="email"
+                 formControlName="correo"
+                 placeholder="Ej. docente@institucion.edu.co"
+                 [class.invalid]="isInvalid('correo')"
+               />
+               <small class="field-error" *ngIf="isInvalid('correo')">Ingrese un correo electrónico válido.</small>
+             </div>
 
-            <div class="form-group">
-              <label for="cargaHorariaSemanal">Carga horaria semanal (horas)</label>
-              <input
-                id="cargaHorariaSemanal"
-                type="number"
-                min="1"
-                step="1"
-                formControlName="cargaHorariaSemanal"
-                placeholder="Ej. 20"
-                [class.invalid]="isInvalid('cargaHorariaSemanal')"
-              />
-              <small class="field-error" *ngIf="isInvalid('cargaHorariaSemanal')">Debe ser un número mayor o igual a 1.</small>
-            </div>
+             <div class="form-group">
+               <label for="cargaHorariaSemanal">Carga horaria semanal (horas)</label>
+               <input
+                 id="cargaHorariaSemanal"
+                 type="number"
+                 min="1"
+                 step="1"
+                 formControlName="cargaHorariaSemanal"
+                 placeholder="Ej. 20"
+                 [class.invalid]="isInvalid('cargaHorariaSemanal')"
+               />
+               <small class="field-error" *ngIf="isInvalid('cargaHorariaSemanal')">Debe ser un número mayor o igual a 1.</small>
+             </div>
 
-            <footer class="modal-actions">
-              <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting">
-                Cancelar
-              </button>
-              <button type="submit" class="btn-primary" [disabled]="submitting">
-                {{ submitting ? 'Guardando...' : 'Crear docente' }}
-              </button>
-            </footer>
-          </form>
-        </div>
-      </div>
+             <footer class="modal-actions">
+               <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="submitting">
+                 Cancelar
+               </button>
+               <button type="submit" class="btn-primary" [disabled]="submitting">
+                 {{ submitting ? 'Guardando...' : (docenteEnEdicion ? 'Actualizar docente' : 'Crear docente') }}
+               </button>
+             </footer>
+           </form>
+         </div>
+       </div>
     </section>
   `,
   styles: [`
@@ -304,11 +313,52 @@ import { DocenteService } from '../service/docente.service';
       font-weight: 600;
     }
 
-    .table tbody tr:hover {
-      background: #f8fafc;
-    }
+     .table tbody tr:hover {
+       background: #f8fafc;
+     }
 
-    .state-message {
+     .th-actions,
+     .td-actions {
+       text-align: center;
+       width: 180px;
+     }
+
+     .btn-action {
+       border: 0;
+       border-radius: 0.375rem;
+       padding: 0.35rem 0.65rem;
+       font-size: 0.8rem;
+       font-weight: 600;
+       cursor: pointer;
+       transition: all 0.2s ease;
+       margin: 0 0.25rem;
+       white-space: nowrap;
+     }
+
+     .btn-edit {
+       background: #3b82f6;
+       color: #fff;
+     }
+
+     .btn-edit:hover:not(:disabled) {
+       background: #2563eb;
+     }
+
+     .btn-delete {
+       background: #ef4444;
+       color: #fff;
+     }
+
+     .btn-delete:hover:not(:disabled) {
+       background: #dc2626;
+     }
+
+     .btn-action:disabled {
+       opacity: 0.6;
+       cursor: not-allowed;
+     }
+
+     .state-message {
       padding: 2rem;
       text-align: center;
       color: #64748b;
@@ -452,6 +502,7 @@ export class DocenteListPageComponent implements OnInit {
   totalElements = 0;
 
   showModal = false;
+  docenteEnEdicion: Docente | null = null;
 
   readonly docenteForm = this.fb.group({
     nombres: ['', [Validators.required, Validators.pattern(/\S+/)]],
@@ -519,68 +570,129 @@ export class DocenteListPageComponent implements OnInit {
     }
   }
 
-  openCreateModal(): void {
-    this.docenteForm.reset({
-      nombres: '',
-      apellidos: '',
-      documento: '',
-      correo: '',
-      cargaHorariaSemanal: null
-    });
-    this.showModal = true;
-    this.cdr.markForCheck();
-  }
+   openCreateModal(): void {
+     this.docenteEnEdicion = null;
+     this.docenteForm.reset({
+       nombres: '',
+       apellidos: '',
+       documento: '',
+       correo: '',
+       cargaHorariaSemanal: null
+     });
+     this.showModal = true;
+     this.cdr.markForCheck();
+   }
 
-  closeModal(): void {
-    this.showModal = false;
-    this.cdr.markForCheck();
-  }
+   openEditModal(docente: Docente): void {
+     this.docenteEnEdicion = docente;
+     this.docenteForm.patchValue({
+       nombres: docente.nombres,
+       apellidos: docente.apellidos,
+       documento: docente.documento,
+       correo: docente.correo || '',
+       cargaHorariaSemanal: docente.cargaHorariaSemanal
+     });
+     this.showModal = true;
+     this.cdr.markForCheck();
+   }
+
+   closeModal(): void {
+     this.showModal = false;
+     this.docenteEnEdicion = null;
+     this.cdr.markForCheck();
+   }
 
   isInvalid(field: string): boolean {
     const control = this.docenteForm.get(field);
     return Boolean(control && control.invalid && (control.dirty || control.touched));
   }
 
-  submitForm(): void {
-    if (this.docenteForm.invalid) {
-      this.docenteForm.markAllAsTouched();
-      return;
-    }
+   submitForm(): void {
+     if (this.docenteForm.invalid) {
+       this.docenteForm.markAllAsTouched();
+       return;
+     }
 
-    const val = this.docenteForm.getRawValue();
-    const institucionId = this.authService.getInstitucionId();
+     const val = this.docenteForm.getRawValue();
+     const institucionId = this.authService.getInstitucionId();
 
-    const payload: DocenteRequest = {
-      nombres: String(val.nombres ?? '').trim(),
-      apellidos: String(val.apellidos ?? '').trim(),
-      documento: String(val.documento ?? '').trim(),
-      correo: val.correo ? String(val.correo).trim() : null,
-      cargaHorariaSemanal: val.cargaHorariaSemanal != null
-        ? Number(val.cargaHorariaSemanal)
-        : null,
-      institucionId: institucionId ? Number(institucionId) : null
-    };
+     const payload: DocenteRequest = {
+       nombres: String(val.nombres ?? '').trim(),
+       apellidos: String(val.apellidos ?? '').trim(),
+       documento: String(val.documento ?? '').trim(),
+       correo: val.correo ? String(val.correo).trim() : null,
+       cargaHorariaSemanal: val.cargaHorariaSemanal != null
+         ? Number(val.cargaHorariaSemanal)
+         : null,
+       institucionId: institucionId ? Number(institucionId) : null
+     };
 
-    this.submitting = true;
-    this.cdr.markForCheck();
+     this.submitting = true;
+     this.cdr.markForCheck();
 
-    this.docenteService
-      .crear(payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.submitting = false;
-          this.notificationService.success('Docente registrado exitosamente.');
-          this.closeModal();
-          this.loadDocentes();
-        },
-        error: (error) => {
-          this.submitting = false;
-          this.notificationService.error(error?.message || 'Error al crear el docente.');
-          this.cdr.markForCheck();
-        }
-      });
-  }
+     if (this.docenteEnEdicion) {
+       // Modo edición
+       this.docenteService
+         .actualizar(this.docenteEnEdicion.id!, payload)
+         .pipe(takeUntilDestroyed(this.destroyRef))
+         .subscribe({
+           next: () => {
+             this.submitting = false;
+             this.notificationService.success('Docente actualizado exitosamente.');
+             this.closeModal();
+             this.loadDocentes();
+           },
+           error: (error) => {
+             this.submitting = false;
+             this.notificationService.error(error?.message || 'Error al actualizar el docente.');
+             this.cdr.markForCheck();
+           }
+         });
+     } else {
+       // Modo creación
+       this.docenteService
+         .crear(payload)
+         .pipe(takeUntilDestroyed(this.destroyRef))
+         .subscribe({
+           next: () => {
+             this.submitting = false;
+             this.notificationService.success('Docente registrado exitosamente.');
+             this.closeModal();
+             this.loadDocentes();
+           },
+           error: (error) => {
+             this.submitting = false;
+             this.notificationService.error(error?.message || 'Error al crear el docente.');
+             this.cdr.markForCheck();
+           }
+         });
+     }
+   }
+
+   deleteDocente(id: number): void {
+     if (!confirm('¿Está seguro de que desea eliminar este docente?')) {
+       return;
+     }
+
+     this.submitting = true;
+     this.cdr.markForCheck();
+
+     this.docenteService
+       .eliminar(id)
+       .pipe(takeUntilDestroyed(this.destroyRef))
+       .subscribe({
+         next: () => {
+           this.submitting = false;
+           this.notificationService.success('Docente eliminado exitosamente.');
+           this.loadDocentes();
+         },
+         error: (error) => {
+           this.submitting = false;
+           this.notificationService.error(error?.message || 'Error al eliminar el docente.');
+           this.cdr.markForCheck();
+         }
+       });
+   }
 
   formatValue(value: unknown): string {
     if (value === null || value === undefined || value === '') {

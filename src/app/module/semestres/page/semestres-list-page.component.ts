@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { EmptyStateComponent } from '../../../components/empty-state/empty-state.component';
@@ -17,9 +18,9 @@ import { Semestre, SemestreRequest } from '../model/semestre.model';
 import { SemestreService } from '../service/semestre.service';
 
 @Component({
-  selector: 'app-semestres-list-page',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SearchInputComponent, LoadingComponent, EmptyStateComponent, PaginationComponent],
+   selector: 'app-semestres-list-page',
+   standalone: true,
+   imports: [CommonModule, ReactiveFormsModule, FormsModule, SearchInputComponent, LoadingComponent, EmptyStateComponent, PaginationComponent],
   template: `
     <section class="resource-card">
       <header class="resource-card__header">
@@ -34,11 +35,30 @@ import { SemestreService } from '../service/semestre.service';
         </div>
       </header>
 
-      <app-search-input
-        [placeholder]="'Buscar semestres'"
-        [showClearButton]="false"
-        (searchChange)="onSearchChange($event)"
-      ></app-search-input>
+       <app-search-input
+         [placeholder]="'Buscar semestres'"
+         [showClearButton]="false"
+         (searchChange)="onSearchChange($event)"
+       ></app-search-input>
+
+       <div class="filters-container">
+         <div class="filter-group">
+           <label for="filter-programa">Programa</label>
+           <select id="filter-programa" [(ngModel)]="selectedProgramaId" (change)="onFilterChange()">
+             <option [ngValue]="null">Todos los programas</option>
+             <option *ngFor="let prog of programaOptions" [ngValue]="prog.value">{{ prog.label }}</option>
+           </select>
+         </div>
+
+         <div class="filter-group">
+           <label for="filter-anio">Año</label>
+           <input id="filter-anio" type="number" min="1900" [(ngModel)]="selectedAnio" (change)="onFilterChange()" placeholder="Filtrar por año" />
+         </div>
+
+         <button type="button" class="btn-clear-filters" (click)="clearFilters()" *ngIf="selectedProgramaId !== null || selectedAnio !== null">
+           Limpiar filtros
+         </button>
+       </div>
 
       <app-loading *ngIf="loading"></app-loading>
 
@@ -156,9 +176,49 @@ import { SemestreService } from '../service/semestre.service';
       gap: 1rem;
       align-items: flex-start;
     }
-    h1 { margin: 0; font-size: 1.5rem; }
-    p { margin: 0.25rem 0 0; color: #64748b; }
-    .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+     h1 { margin: 0; font-size: 1.5rem; }
+     p { margin: 0.25rem 0 0; color: #64748b; }
+     .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+     .filters-container {
+       display: flex;
+       gap: 1rem;
+       flex-wrap: wrap;
+       align-items: flex-end;
+       padding: 0.5rem 0;
+     }
+     .filter-group {
+       display: flex;
+       flex-direction: column;
+       gap: 0.35rem;
+       min-width: 10rem;
+     }
+     .filter-group label {
+       font-weight: 600;
+       color: #0f172a;
+       font-size: 0.9rem;
+     }
+     .filter-group select,
+     .filter-group input {
+       padding: 0.75rem 1rem;
+       border-radius: 0.75rem;
+       border: 1px solid #cbd5e1;
+       background: #fff;
+       font-size: 0.95rem;
+       width: 100%;
+     }
+     .btn-clear-filters {
+       padding: 0.75rem 1rem;
+       border-radius: 0.85rem;
+       border: 1px solid #cbd5e1;
+       background: #fff;
+       color: #334155;
+       font-weight: 700;
+       cursor: pointer;
+       transition: all 0.2s ease;
+     }
+     .btn-clear-filters:hover {
+       background: #f1f5f9;
+     }
     .btn-new, .refresh, .btn-edit, .btn-cancel, .btn-submit {
       padding: 0.75rem 1rem;
       border-radius: 0.85rem;
@@ -230,17 +290,19 @@ export class SemestresListPageComponent implements OnInit {
   protected readonly titulo = 'Semestres';
   protected readonly descripcion = 'Gestiona los semestres de tu institución.';
 
-  programaOptions: { value: number; label: string }[] = [];
-  loading = false;
-  saving = false;
-  showModal = false;
-  error: string | null = null;
-  items: Semestre[] = [];
-  page = 0;
-  size = 10;
-  total = 0;
-  query = '';
-  editingId: number | null = null;
+   programaOptions: { value: number; label: string }[] = [];
+   loading = false;
+   saving = false;
+   showModal = false;
+   error: string | null = null;
+   items: Semestre[] = [];
+   page = 0;
+   size = 10;
+   total = 0;
+   query = '';
+   selectedProgramaId: number | null = null;
+   selectedAnio: number | null = null;
+   editingId: number | null = null;
 
   readonly semestreForm = this.fb.group({
     nombre: ['', [Validators.required]],
@@ -262,16 +324,28 @@ export class SemestresListPageComponent implements OnInit {
     return this.editingId !== null;
   }
 
-  onSearchChange(query: string): void {
-    this.query = query.trim();
-    this.page = 0;
-    this.loadSemestres();
-  }
+   onSearchChange(query: string): void {
+     this.query = query.trim();
+     this.page = 0;
+     this.loadSemestres();
+   }
 
-  changePage(page: number): void {
-    this.page = page;
-    this.loadSemestres();
-  }
+   onFilterChange(): void {
+     this.page = 0;
+     this.loadSemestres();
+   }
+
+   clearFilters(): void {
+     this.selectedProgramaId = null;
+     this.selectedAnio = null;
+     this.page = 0;
+     this.loadSemestres();
+   }
+
+   changePage(page: number): void {
+     this.page = page;
+     this.loadSemestres();
+   }
 
   reload(): void {
     this.loadProgramasOptions();
@@ -431,13 +505,15 @@ export class SemestresListPageComponent implements OnInit {
       });
   }
 
-  private buildFilters(): PaginacionRequest {
-    return {
-      q: this.query || undefined,
-      page: this.page,
-      size: this.size
-    };
-  }
+   private buildFilters(): PaginacionRequest {
+     return {
+       q: this.query || undefined,
+       page: this.page,
+       size: this.size,
+       programaId: this.selectedProgramaId || undefined,
+       anio: this.selectedAnio || undefined
+     };
+   }
 
   private buildPayload(payload: Record<string, unknown>): SemestreRequest {
     return {

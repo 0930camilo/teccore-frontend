@@ -14,7 +14,7 @@ import { PaginacionRequest, PaginacionRespuesta } from '../../shared/interface/p
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'email' | 'select';
+  type: 'text' | 'number' | 'email' | 'select' | 'multiselect';
   required?: boolean;
   options?: { value: unknown; label: string }[];
 }
@@ -87,10 +87,13 @@ export interface FormField {
             </label>
             <select *ngIf="field.type === 'select'" [formControlName]="field.key">
               <option value="">Seleccionar...</option>
-              <option *ngFor="let opt of field.options" [value]="opt.value">{{ opt.label }}</option>
+              <option *ngFor="let opt of field.options" [ngValue]="opt.value">{{ opt.label }}</option>
+            </select>
+            <select *ngIf="field.type === 'multiselect'" [formControlName]="field.key" multiple>
+              <option *ngFor="let opt of field.options" [ngValue]="opt.value">{{ opt.label }}</option>
             </select>
             <input
-              *ngIf="field.type !== 'select'"
+              *ngIf="field.type !== 'select' && field.type !== 'multiselect'"
               [type]="field.type"
               [formControlName]="field.key"
               [placeholder]="field.label"
@@ -226,6 +229,10 @@ export interface FormField {
       box-sizing: border-box;
     }
 
+    .field select[multiple] {
+      min-height: 8rem;
+    }
+
     .field-error { color: #b91c1c; font-size: 0.8rem; }
 
     .modal__footer {
@@ -325,7 +332,8 @@ export class ResourceListComponent implements OnInit {
   openModal(): void {
     const controls: Record<string, ReturnType<typeof this.fb.control>> = {};
     for (const field of this.createFields) {
-      controls[field.key] = this.fb.control('', field.required ? Validators.required : []);
+      const initialValue = field.type === 'multiselect' ? [] : '';
+      controls[field.key] = this.fb.control(initialValue, field.required ? Validators.required : []);
     }
     this.createForm = this.fb.group(controls);
     this.showModal = true;

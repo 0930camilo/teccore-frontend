@@ -7,6 +7,9 @@ export interface PaginacionRequest {
   size: number;
   // filtros opcionales comunes para listados (p. ej. estado)
   estado?: EstadoRegistro | string | null;
+  // filtros opcionales específicos
+  programaId?: number | null;
+  anio?: number | null;
 }
 
 export interface PaginacionRespuesta<T> {
